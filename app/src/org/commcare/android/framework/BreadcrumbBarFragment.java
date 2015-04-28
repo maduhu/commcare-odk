@@ -119,6 +119,7 @@ public class BreadcrumbBarFragment extends Fragment {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         actionBar.setDisplayShowTitleEnabled(true);
+        actionBar.setSubtitle(local);
         
         actionBar.setTitle(title);
                 
@@ -145,6 +146,7 @@ public class BreadcrumbBarFragment extends Fragment {
         LayoutParams p = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
         p.leftMargin = buffer;
 
+        actionBar.setCustomView(getTitleView(activity, title), p);
         activity.setTitle("");
         actionBar.setDisplayShowHomeEnabled(false);
     }
@@ -337,7 +339,10 @@ public class BreadcrumbBarFragment extends Fragment {
             
             if(title != null) {
             
-                if(breadCrumbsEnabled) {
+                if(!breadCrumbsEnabled) {
+                    ActionBar actionBar = this.getActivity().getActionBar();
+                    actionBar.setSubtitle(null);
+                } else {
                     //This part can change more dynamically
                     if(localIdPart != -1 ) {
                         TextView text = (TextView)this.getActivity().getActionBar().getCustomView().findViewById(localIdPart);
