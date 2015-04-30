@@ -128,7 +128,7 @@ public class TabbedDetailView extends RelativeLayout {
                 // Create MenuListEntryView for tab
                 HorizontalMediaView view = new HorizontalMediaView(mContext);
                 DisplayUnit title = d.getTitle();
-                view.setAVT(title.getText().evaluate(), title.getAudioURI(), title.getImageURI());
+                view.setAVT(title.getText().evaluate(), title.getAudioURI().evaluate(), title.getImageURI().evaluate());
                 view.setGravity(Gravity.CENTER);
                 view.setClickable(true);
                 view.setOnClickListener(listener);
