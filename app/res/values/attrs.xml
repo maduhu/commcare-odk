@@ -29,4 +29,5 @@
     <attr name="menu_tile_title_text_color" format="reference"></attr>
     <attr name="entity_select_title_text_color" format="reference"></attr>
     <attr name="filter_select_background_color" format="reference"></attr>
+    <attr name="filter_select_text_color" format="reference"></attr>
 </resources>
