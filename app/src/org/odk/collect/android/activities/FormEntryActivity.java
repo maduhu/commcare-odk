@@ -682,11 +682,11 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         ODKView oldODKV = (ODKView)mCurrentView;
         
         FormEntryPrompt[] newValidPrompts = mFormController.getQuestionPrompts();
-        Set<FormEntryPrompt> used = new HashSet<FormEntryPrompt>();
+        Set<FormEntryPrompt> used = new HashSet<>();
         
         ArrayList<QuestionWidget> oldWidgets = oldODKV.getWidgets();
 
-        ArrayList<Integer> removeList = new ArrayList<Integer>();
+        ArrayList<Integer> removeList = new ArrayList<>();
 
            for(int i=0;i<oldWidgets.size();i++){
             QuestionWidget oldWidget = oldWidgets.get(i);
@@ -1052,9 +1052,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      * Takes in a form entry prompt that is obtained generically and if there
      * is already one on screen (which, for isntance, may have cached some of its data)
      * returns the object in use currently.
-     * 
-     * @param prompt
-     * @return
      */
     private FormEntryPrompt getOnScreenPrompt(FormEntryPrompt prompt, ODKView view) {
     	FormIndex index = prompt.getIndex();
@@ -1180,7 +1177,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     /**
      * Attempt to save the answer(s) in the current screen to into the data model.
      *
-     * @param evaluateConstraints
      * @param failOnRequired      Whether or not the constraint evaluation
      *                            should return false if the question is only
      *                            required. (this is helpful for incomplete
@@ -1204,7 +1200,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
                 // Sort the answers so if there are multiple errors, we can
                 // bring focus to the first one
-                List<FormIndex> indexKeys = new ArrayList<FormIndex>();
+                List<FormIndex> indexKeys = new ArrayList<>();
                 indexKeys.addAll(answers.keySet());
                 Collections.sort(indexKeys, new Comparator<FormIndex>() {
                     @Override
@@ -1310,9 +1306,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
     /**
      * Creates a view given the View type and an event
-     * 
-     * @param event
-     * @return newly created View
      */
     private View createView(int event) {
         setTitle(getHeaderString());
@@ -1930,7 +1923,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      *                        non-null
      * @param headless        Disables GUI warnings and lets answers that
      *                        violate constraints be saved.
-     * @return Did the data save successfully?
      */
     private void saveDataToDisk(boolean exit, boolean complete, String updatedSaveName, boolean headless) {
         if (!formHasLoaded()) {
@@ -2396,8 +2388,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     
     /**
      * Get the default title for ODK's "Form title" field
-     *  
-     * @return
      */
     private String getDefaultFormTitle() {
         String saveName = mFormController.getFormTitle();
@@ -2639,8 +2629,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     /**
      * Attempts to save an answer to the specified index.
      * 
-     * @param answer
-     * @param index
      * @param evaluateConstraints Should form contraints be checked when saving answer?
      * @return status as determined in FormEntryController
      */
