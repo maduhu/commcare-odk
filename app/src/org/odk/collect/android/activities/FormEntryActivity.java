@@ -356,7 +356,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     }
 
     private void registerFormEntryReceiver() {
-
         //BroadcastReceiver for:
         // a) An unresolvable xpath expression encountered in PollSensorAction.onLocationChanged
         // b) Checking if GPS services are not available
@@ -378,7 +377,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         filter.addAction(PollSensorAction.XPATH_ERROR_ACTION);
         filter.addAction(GeoUtils.ACTION_CHECK_GPS_ENABLED);
         registerReceiver(mLocationServiceIssueReceiver, filter);
-
     }
 
     private void handleNoGpsBroadcast(Context context) {
@@ -672,7 +670,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     }
 
     private void updateFormRelevencies() {
-
         saveAnswersForCurrentScreen(DO_NOT_EVALUATE_CONSTRAINTS);
 
         if (!(mCurrentView instanceof ODKView)) {
@@ -705,7 +702,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         // remove "atomically" to not mess up iterations
         oldODKV.removeQuestionsFromIndex(removeList);
 
-
         //Now go through add add any new prompts that we need
         for (int i = 0; i < newValidPrompts.length; ++i) {
             FormEntryPrompt prompt = newValidPrompts[i];
@@ -728,8 +724,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         public int relevantAfterCurrentScreen = 0;
         public FormIndex currentScreenExit = null;
-
-
     }
 
     private NavigationDetails calculateNavigationStatus() {
@@ -954,14 +948,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         public String getAppearance() {
             return label;
         }
-
-        public int getBackgroundDrawable() {
-            return resourceId;
-        }
-
-        public int getColorId() {
-            return colorId;
-        }
     }
 
     private void updateFloatingLabels(View currentView) {
@@ -989,7 +975,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 }
             }
         }
-
 
         final ViewGroup parent = (ViewGroup)this.findViewById(R.id.form_entry_label_layout);
         parent.removeAllViews();
@@ -1034,7 +1019,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
     private void updateBadgeInfo(int requiredOnScreen, int answeredOnScreen) {
         View badgeBorder = this.findViewById(R.id.nav_badge_border_drawer);
         TextView badge = (TextView)this.findViewById(R.id.nav_badge);
@@ -1075,7 +1059,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return prompt;
     }
 
-
     /**
      * Refreshes the current view. the controller and the displayed view can get out of sync due to
      * dialogs and restarts caused by screen orientation changes, so they're resynchronized here.
@@ -1115,9 +1098,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             View current = createView(event);
             showView(current, AnimationType.FADE, animateLastView);
         }
-
     }
-
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
@@ -1144,7 +1125,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 android.R.drawable.ic_menu_preferences);
         return true;
     }
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -1174,7 +1154,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
         return super.onOptionsItemSelected(item);
     }
-
 
     /**
      * @return true If the current index of the form controller contains questions
@@ -1256,7 +1235,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return success;
     }
 
-
     /**
      * Clears the answer on the screen.
      */
@@ -1264,14 +1242,12 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         qw.clearAnswer();
     }
 
-
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
         menu.add(0, v.getId(), 0, StringUtils.getStringSpannableRobust(this, R.string.clear_answer));
         menu.setHeaderTitle(StringUtils.getStringSpannableRobust(this, R.string.edit_prompt));
     }
-
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
@@ -1286,7 +1262,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         return super.onContextItemSelected(item);
     }
-
 
     /**
      * If we're loading, then we pass the loading thread to our next instance.
@@ -1315,7 +1290,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         } else {
             return StringUtils.getStringRobust(this, R.string.app_name) + " > " + mFormController.getFormTitle();
         }
-
     }
 
     /**
@@ -1495,7 +1469,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
     @SuppressLint("NewApi")
     @Override
     public boolean dispatchTouchEvent(MotionEvent mv) {
@@ -1516,7 +1489,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         boolean handled = mGestureDetector.onTouchEvent(mv);
         return handled || super.dispatchTouchEvent(mv);
     }
-
 
     /**
      * Determines what should be displayed on the screen. Possible options are: a question, an ask
@@ -1612,7 +1584,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
     /**
      * Determines what should be displayed between a question, or the start screen and displays the
      * appropriate view. Also saves answers to the data model without checking constraints.
@@ -1674,7 +1645,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             FormEntryActivity.this.triggerUserQuitInput();
         }
     }
-
 
     /**
      * Displays the View specified by the parameter 'next', animating both the current view and next
@@ -1741,18 +1711,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
-    // Hopefully someday we can use managed dialogs when the bugs are fixed
-    /*
-     * Ideally, we'd like to use Android to manage dialogs with onCreateDialog() and
-     * onPrepareDialog(), but dialogs with dynamic content are broken in 1.5 (cupcake). We do use
-     * managed dialogs for our static loading ProgressDialog. The main issue we noticed and are
-     * waiting to see fixed is: onPrepareDialog() is not called after a screen orientation change.
-     * http://code.google.com/p/android/issues/detail?id=1639
-     */
-
-    //
-
     /**
      * Creates and displays a dialog displaying the violated constraint.
      */
@@ -1801,7 +1759,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         t.show();
     }
 
-
     /**
      * Creates and displays a dialog asking the user if they'd like to create a repeat of the
      * current group.
@@ -1811,13 +1768,11 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         View view = LayoutInflater.from(wrapper).inflate(R.layout.component_repeat_new_dialog, null);
 
-
         mRepeatDialog = new AlertDialog.Builder(wrapper).create();
 
         final AlertDialog theDialog = mRepeatDialog;
 
         mRepeatDialog.setView(view);
-
         mRepeatDialog.setIcon(android.R.drawable.ic_dialog_info);
 
         boolean hasNavBar = PreferencesActivity.getProgressBarMode(this).useNavigationBar();
@@ -1829,13 +1784,10 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
 
         final boolean backExitsForm = hasNavBar && !details.relevantBeforeCurrentScreen;
-
         final boolean nextExitsForm = hasNavBar && details.relevantAfterCurrentScreen == 0;
 
         Button back = (Button)view.findViewById(R.id.component_repeat_back);
-
         back.setOnClickListener(new OnClickListener() {
-
             @Override
             public void onClick(View v) {
                 if (backExitsForm) {
@@ -1845,11 +1797,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                     FormEntryActivity.this.refreshCurrentView(false);
                 }
             }
-
         });
 
         Button newButton = (Button)view.findViewById(R.id.component_repeat_new);
-
         newButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1866,9 +1816,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         });
 
         Button skip = (Button)view.findViewById(R.id.component_repeat_skip);
-
         skip.setOnClickListener(new OnClickListener() {
-
             @Override
             public void onClick(View v) {
                 theDialog.dismiss();
@@ -1878,9 +1826,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                     triggerUserFormComplete();
                 }
             }
-
         });
-
 
         back.setText(StringUtils.getStringSpannableRobust(this, R.string.repeat_go_back));
 
@@ -1890,7 +1836,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         Drawable doneIcon = getResources().getDrawable(R.drawable.icon_done);
         doneIcon.setBounds(0, 0, doneIcon.getIntrinsicWidth(), doneIcon.getIntrinsicHeight());
-
 
         if (mFormController.getLastRepeatCount() > 0) {
             mRepeatDialog.setTitle(StringUtils.getStringRobust(this, R.string.leaving_repeat_ask));
@@ -1902,7 +1847,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             } else {
                 skip.setText(StringUtils.getStringSpannableRobust(this, R.string.leave_repeat_yes_exits));
             }
-
         } else {
             mRepeatDialog.setTitle(StringUtils.getStringRobust(this, R.string.entering_repeat_ask));
             mRepeatDialog.setMessage(StringUtils.getStringSpannableRobust(this, R.string.add_repeat,
@@ -1972,7 +1916,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
     /**
      * Create a dialog with options to save and exit, save, or quit without saving
      */
@@ -1997,7 +1940,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which) {
-
                             case 0: // save and exit
                                 if (items.length == 1) {
                                     discardChangesAndExit();
@@ -2005,11 +1947,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                                     saveDataToDisk(EXIT, isInstanceComplete(false), null, false);
                                 }
                                 break;
-
                             case 1: // discard changes and exit
                                 discardChangesAndExit();
                                 break;
-
                             case 2:// do nothing
                                 break;
                         }
@@ -2162,7 +2102,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         finishReturnInstance(false);
     }
 
-
     /**
      * Confirm clear answer dialog
      */
@@ -2199,7 +2138,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         mAlertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, StringUtils.getStringSpannableRobust(this, R.string.clear_answer_no), quitListener);
         mAlertDialog.show();
     }
-
 
     /**
      * Creates and displays a dialog allowing the user to set the language for the form.
@@ -2252,7 +2190,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                                 }).create();
         mAlertDialog.show();
     }
-
 
     /**
      * We use Android's dialog management for loading/saving progress dialogs
@@ -2309,7 +2246,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return null;
     }
 
-
     /**
      * Dismiss any showing dialogs that we manually manage.
      */
@@ -2321,7 +2257,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             mRepeatDialog.dismiss();
         }
     }
-
 
     @Override
     protected void onPause() {
@@ -2339,7 +2274,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             unregisterReceiver(mLocationServiceIssueReceiver);
         }
     }
-
 
     @Override
     protected void onResume() {
@@ -2462,7 +2396,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return super.onKeyDown(keyCode, event);
     }
 
-
     @Override
     protected void onDestroy() {
         if (mFormLoaderTask != null) {
@@ -2485,27 +2418,22 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
 
         super.onDestroy();
-
     }
-
 
     @Override
     public void onAnimationEnd(Animation arg0) {
         mBeenSwiped = false;
     }
 
-
     @Override
     public void onAnimationRepeat(Animation animation) {
         // Added by AnimationListener interface.
     }
 
-
     @Override
     public void onAnimationStart(Animation animation) {
         // Added by AnimationListener interface.
     }
-
 
     /**
      * loadingComplete() is called by FormLoaderTask once it has finished loading a form.
@@ -2589,7 +2517,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
     /**
      * {@inheritDoc}
      *
@@ -2638,7 +2565,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-
     /**
      * Attempts to save an answer to the specified index.
      *
@@ -2646,7 +2572,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      * @return status as determined in FormEntryController
      */
     private int saveAnswer(IAnswerData answer, FormIndex index, boolean evaluateConstraints) {
-
         try {
             if (evaluateConstraints) {
                 return mFormController.answerQuestion(index, answer);
@@ -2661,7 +2586,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             return FormEntryController.ANSWER_OK;
         }
     }
-
 
     /**
      * Checks the database to determine if the current instance being edited has already been
@@ -2706,14 +2630,12 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return complete;
     }
 
-
     private void next() {
         if (!mBeenSwiped) {
             mBeenSwiped = true;
             showNextView();
         }
     }
-
 
     private void finishReturnInstance() {
         finishReturnInstance(true);
@@ -2770,7 +2692,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         finish();
     }
 
-
     @Override
     public boolean onDown(MotionEvent e) {
         return false;
@@ -2798,11 +2719,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return false;
     }
 
-
     @Override
     public void onLongPress(MotionEvent e) {
     }
-
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
@@ -2812,29 +2731,24 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         return false;
     }
 
-
     @Override
     public void onShowPress(MotionEvent e) {
     }
-
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
         return false;
     }
 
-
     @Override
     public void advance() {
         next();
     }
 
-
     @Override
     public void widgetEntryChanged() {
         updateFormRelevencies();
         updateNavigationCues(this.mCurrentView);
-
     }
 
     /**
