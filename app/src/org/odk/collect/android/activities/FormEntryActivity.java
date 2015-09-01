@@ -1769,18 +1769,12 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
 
         if(!displayed) {
-            showCustomToast(constraintText, Toast.LENGTH_SHORT);
+            showCustomToast(constraintText);
         }
         mBeenSwiped = false;
     }
 
-
-    /**
-     * Creates a toast with the specified message.
-     * 
-     * @param message
-     */
-    private void showCustomToast(String message, int duration) {
+    private void showCustomToast(String message) {
         LayoutInflater inflater =
             (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
@@ -1792,7 +1786,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         Toast t = new Toast(this);
         t.setView(view);
-        t.setDuration(duration);
+        t.setDuration(Toast.LENGTH_SHORT);
         t.setGravity(Gravity.CENTER, 0, 0);
         t.show();
     }
@@ -3007,7 +3001,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             }
         }
         if(intent.hasExtra(KEY_HEADER_STRING)) {
-            this.mHeaderString = intent.getStringExtra(KEY_HEADER_STRING);
+            FormEntryActivity.mHeaderString = intent.getStringExtra(KEY_HEADER_STRING);
         }
 
         if(intent.hasExtra(KEY_INCOMPLETE_ENABLED)) {
