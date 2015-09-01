@@ -546,10 +546,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                  */
 
                 // get gp of chosen file
-                String sourceImagePath = null;
                 Uri selectedImage = intent.getData();
-                
-                sourceImagePath = FileUtils.getPath(this, selectedImage);
+
+                String sourceImagePath = FileUtils.getPath(this, selectedImage);
 
                 // Copy file to sdcard
                 String mInstanceFolder1 =
@@ -621,7 +620,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         for(QuestionWidget q : ((ODKView)mCurrentView).getWidgets()) {
             //Figure out if we have a pending intent widget
             if (q instanceof IntentWidget) {
-                if(((IntentWidget) q).getFormId().equals(mFormController.getPendingCalloutFormIndex())) {
+                if(q.getFormId().equals(mFormController.getPendingCalloutFormIndex())) {
                     bestMatch = (IntentWidget)q;
                 }
             }
@@ -825,8 +824,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 else if (event == FormEntryController.EVENT_PROMPT_NEW_REPEAT) {
                     // If we've already passed the current screen, this repeat
                     // junction is coming up in the future and we will need to
-                    // know
-                    // about it
+                    // know about it
                     if (!onCurrentScreen && details.currentScreenExit != null) {
                         details.totalQuestions++;
                         details.relevantAfterCurrentScreen++;
@@ -1349,10 +1347,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                     }
                 }
 
-                BitmapDrawable bitImage = null;
                 // attempt to load the form-specific logo...
                 // this is arbitrarily silly
-                bitImage = new BitmapDrawable(mediaDir + "/form_logo.png");
+                BitmapDrawable bitImage = new BitmapDrawable(mediaDir + "/form_logo.png");
 
                 if (bitImage.getBitmap() != null &&
                         bitImage.getIntrinsicHeight() > 0 &&
@@ -1361,8 +1358,6 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 }
 
                 if (image == null) {
-                    // show the opendatakit zig...
-                    // image = getResources().getDrawable(R.drawable.opendatakit_zig);
                     ((ImageView) startView.findViewById(R.id.form_start_bling))
                             .setVisibility(View.GONE);
                 } else {
@@ -2388,7 +2383,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      */
     private String getDefaultFormTitle() {
         String saveName = mFormController.getFormTitle();
-        if (getContentResolver().getType(getIntent().getData()) == InstanceColumns.CONTENT_ITEM_TYPE) {
+        if (InstanceColumns.CONTENT_ITEM_TYPE.equals(getContentResolver().getType(getIntent().getData()))) {
             Uri instanceUri = getIntent().getData();
 
             Cursor instance = null;
