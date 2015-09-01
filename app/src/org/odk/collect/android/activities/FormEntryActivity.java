@@ -2184,19 +2184,19 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                     @Override
                     public void onClick(DialogInterface dialog, int i) {
                         switch (i) {
-                            case DialogInterface.BUTTON1: // yes
+                            case DialogInterface.BUTTON_POSITIVE:
                                 clearAnswer(qw);
                                 saveAnswersForCurrentScreen(DO_NOT_EVALUATE_CONSTRAINTS);
                                 break;
-                            case DialogInterface.BUTTON2: // no
+                            case DialogInterface.BUTTON_NEGATIVE:
                                 break;
                         }
                     }
                 };
         mAlertDialog.setCancelable(false);
-        mAlertDialog.setButton(StringUtils.getStringSpannableRobust(this, R.string.discard_answer), quitListener);
-                mAlertDialog.setButton2(StringUtils.getStringSpannableRobust(this, R.string.clear_answer_no), quitListener);
-                        mAlertDialog.show();
+        mAlertDialog.setButton(DialogInterface.BUTTON_POSITIVE, StringUtils.getStringSpannableRobust(this, R.string.discard_answer), quitListener);
+        mAlertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, StringUtils.getStringSpannableRobust(this, R.string.clear_answer_no), quitListener);
+        mAlertDialog.show();
     }
 
 
@@ -2277,7 +2277,8 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                         progressDialog.setMessage(StringUtils.getStringSpannableRobust(this, R.string.please_wait));
                                 progressDialog.setIndeterminate(true);
                 progressDialog.setCancelable(false);
-                progressDialog.setButton(StringUtils.getStringSpannableRobust(this, R.string.cancel_loading_form),
+                progressDialog.setButton(DialogInterface.BUTTON_POSITIVE,
+                        StringUtils.getStringSpannableRobust(this, R.string.cancel_loading_form),
                         loadingButtonListener);
                 return progressDialog;
             case SAVING_DIALOG:
@@ -2296,8 +2297,11 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                         progressDialog.setMessage(StringUtils.getStringSpannableRobust(this, R.string.please_wait));
                                 progressDialog.setIndeterminate(true);
                 progressDialog.setCancelable(false);
-                progressDialog.setButton(StringUtils.getStringSpannableRobust(this, R.string.cancel), savingButtonListener);
-                        progressDialog.setButton(StringUtils.getStringSpannableRobust(this, R.string.cancel_saving_form),
+                progressDialog.setButton(DialogInterface.BUTTON_POSITIVE,
+                        StringUtils.getStringSpannableRobust(this, R.string.cancel),
+                        savingButtonListener);
+                progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
+                        StringUtils.getStringSpannableRobust(this, R.string.cancel_saving_form),
                                 savingButtonListener);
                 return progressDialog;
         }
