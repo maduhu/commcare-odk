@@ -133,7 +133,7 @@ import javax.crypto.spec.SecretKeySpec;
 /**
  * FormEntryActivity is responsible for displaying questions, animating transitions between
  * questions, and allowing the user to enter data.
- * 
+ *
  * @author Carl Hartung (carlhartung@gmail.com)
  */
 public class FormEntryActivity extends FragmentActivity implements AnimationListener, FormLoaderListener,
@@ -200,7 +200,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     public static String mInstancePath;
     private String mInstanceDestination;
     private GestureDetector mGestureDetector;
-    
+
     private SecretKeySpec symetricKey = null;
 
     public static FormController mFormController;
@@ -221,12 +221,12 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
     private FormLoaderTask mFormLoaderTask;
     private SaveToDiskTask mSaveToDiskTask;
-    
+
     private Uri formProviderContentURI = FormsColumns.CONTENT_URI;
     private Uri instanceProviderContentURI = InstanceColumns.CONTENT_URI;
-    
+
     private static String mHeaderString;
-    
+
     // Was the form saved? Used to set activity return code.
     private boolean hasSaved = false;
 
@@ -456,7 +456,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         outState.putBoolean(KEY_INCOMPLETE_ENABLED, mIncompleteEnabled);
         outState.putBoolean(KEY_HAS_SAVED, hasSaved);
         outState.putString(KEY_RESIZING_ENABLED, ResizingImageView.resizeMethod);
-        
+
         if(symetricKey != null) {
             try {
                 outState.putString(KEY_AES_STORAGE_KEY, new Base64Wrapper().encodeToString(symetricKey.getEncoded()));
@@ -473,7 +473,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         super.onActivityResult(requestCode, resultCode, intent);
 
         if (resultCode == RESULT_CANCELED) {
-            
+
             if(requestCode == HIERARCHY_ACTIVITY_FIRST_START) {
                 //they pressed 'back' on the first heirarchy screen. we should assume they want to
                 //back out of form entry all together
@@ -481,7 +481,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             } else if(requestCode == INTENT_CALLOUT){
                 processIntentResponse(intent, true);
             }
-            
+
             // request was canceled, so do nothing
             return;
         }
@@ -631,15 +631,15 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     private void processIntentResponse(Intent response){
         processIntentResponse(response, false);
     }
-    
+
     private void processIntentResponse(Intent response, boolean cancelled) {
-        
+
         // keep track of whether we should auto advance
         boolean advance = false;
         boolean quick = false;
-        
+
         //We need to go grab our intent callout object to process the results here
-        
+
         IntentWidget pendingIntentWidget = getPendingIntentWidget();
         TreeReference context;
         if (mFormController.getPendingCalloutFormIndex() != null) {
@@ -650,17 +650,17 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         if(pendingIntentWidget != null) {
             //Set our instance destination for binary data if needed
             String destination = mInstancePath.substring(0, mInstancePath.lastIndexOf("/") + 1);
-            
+
             //get the original intent callout
             IntentCallout ic = pendingIntentWidget.getIntentCallout();
-            
+
             quick = "quick".equals(ic.getAppearance());
 
-            //And process it 
+            //And process it
             advance = ic.processResponse(response, context, new File(destination));
-            
+
             ic.setCancelled(cancelled);
-            
+
         }
 
         refreshCurrentView();
@@ -672,18 +672,18 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     }
 
     private void updateFormRelevencies(){
-        
+
         saveAnswersForCurrentScreen(DO_NOT_EVALUATE_CONSTRAINTS);
-        
+
         if(!(mCurrentView instanceof ODKView)){
             throw new RuntimeException("Tried to update form relevency not on compound view");
         }
-        
+
         ODKView oldODKV = (ODKView)mCurrentView;
-        
+
         FormEntryPrompt[] newValidPrompts = mFormController.getQuestionPrompts();
         Set<FormEntryPrompt> used = new HashSet<>();
-        
+
         ArrayList<QuestionWidget> oldWidgets = oldODKV.getWidgets();
 
         ArrayList<Integer> removeList = new ArrayList<>();
@@ -693,10 +693,10 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             boolean stillRelevent = false;
 
             for(FormEntryPrompt prompt : newValidPrompts) {
-            	if(prompt.getIndex().equals(oldWidget.getPrompt().getIndex())) {
-            		stillRelevent = true;
-            		used.add(prompt);
-            	}
+                if(prompt.getIndex().equals(oldWidget.getPrompt().getIndex())) {
+                    stillRelevent = true;
+                    used.add(prompt);
+                }
             }
             if(!stillRelevent){
                 removeList.add(i);
@@ -704,36 +704,36 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
            // remove "atomically" to not mess up iterations
         oldODKV.removeQuestionsFromIndex(removeList);
-        
-        
+
+
         //Now go through add add any new prompts that we need
         for(int i = 0 ; i < newValidPrompts.length; ++i) {
-        	FormEntryPrompt prompt = newValidPrompts[i]; 
-        	if(used.contains(prompt)) {
-        		//nothing to do here
-        		continue;
-        	} 
-        	oldODKV.addQuestionToIndex(prompt, mFormController.getWidgetFactory(), i);
+            FormEntryPrompt prompt = newValidPrompts[i];
+            if(used.contains(prompt)) {
+                //nothing to do here
+                continue;
+            }
+            oldODKV.addQuestionToIndex(prompt, mFormController.getWidgetFactory(), i);
         }
     }
-	
-	private static class NavigationDetails {
-		public int totalQuestions = 0;
-		public int completedQuestions = 0;
+
+    private static class NavigationDetails {
+        public int totalQuestions = 0;
+        public int completedQuestions = 0;
         public boolean relevantBeforeCurrentScreen = false;
         public boolean isFirstScreen = false;
-        
+
         public int answeredOnScreen = 0;
         public int requiredOnScreen = 0;
-        
+
         public int relevantAfterCurrentScreen = 0;
         public FormIndex currentScreenExit = null;
 
-		
-	}
-	
-	private NavigationDetails calculateNavigationStatus() {
-		NavigationDetails details = new NavigationDetails();
+
+    }
+
+    private NavigationDetails calculateNavigationStatus() {
+        NavigationDetails details = new NavigationDetails();
 
         FormIndex userFormIndex = mFormController.getFormIndex();
         FormIndex currentFormIndex = FormIndex.createBeginningOfFormIndex();
@@ -846,44 +846,44 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         mFormController.jumpToIndex(userFormIndex);
 
         return details;
-    }	
+    }
 
     /**
      * Update progress bar's max and value, and the various buttons and navigation cues
      * associated with navigation
-     * 
+     *
      * @param view ODKView to update
      */
     private void updateNavigationCues(View view) {
         updateFloatingLabels(view);
 
         ProgressBarMode mode = PreferencesActivity.getProgressBarMode(this);
-        
+
         setNavBarVisibility();
-        
+
         if(mode == ProgressBarMode.None) { return; }
-        
+
         NavigationDetails details = calculateNavigationStatus();
-        
+
         if(mode == ProgressBarMode.ProgressOnly && view instanceof ODKView) {
             ((ODKView)view).updateProgressBar(details.completedQuestions, details.totalQuestions);
             return;
         }
 
-    	ProgressBar progressBar = (ProgressBar)this.findViewById(R.id.nav_prog_bar);
-    	
+        ProgressBar progressBar = (ProgressBar)this.findViewById(R.id.nav_prog_bar);
+
         ImageButton nextButton = (ImageButton)this.findViewById(R.id.nav_btn_next);
         ImageButton prevButton = (ImageButton)this.findViewById(R.id.nav_btn_prev);
-        
+
         if(!details.relevantBeforeCurrentScreen) {
-        	prevButton.setImageResource(R.drawable.icon_close_darkwarm);
-        	prevButton.setTag("quit");
+            prevButton.setImageResource(R.drawable.icon_close_darkwarm);
+            prevButton.setTag("quit");
         } else {
-        	prevButton.setImageResource(R.drawable.icon_chevron_left_brand);
-        	prevButton.setTag("back");
+            prevButton.setImageResource(R.drawable.icon_chevron_left_brand);
+            prevButton.setTag("back");
         }
-        
-        //Apparently in Android 2.3 setting the drawable resource for the progress bar 
+
+        //Apparently in Android 2.3 setting the drawable resource for the progress bar
         //causes it to lose it bounds. It's a bit cheaper to keep them around than it
         //is to invalidate the view, though.
         Rect bounds = progressBar.getProgressDrawable().getBounds(); //Save the drawable bound
@@ -897,23 +897,23 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         progressBar.setMax(details.totalQuestions);
 
         if(details.relevantAfterCurrentScreen == 0 && (details.requiredOnScreen == details.answeredOnScreen || details.requiredOnScreen < 1)) {
-        	nextButton.setImageResource(R.drawable.icon_chevron_right_attnpos);
+            nextButton.setImageResource(R.drawable.icon_chevron_right_attnpos);
 
-        	//TODO: _really_? This doesn't seem right
+            //TODO: _really_? This doesn't seem right
             nextButton.setTag("done");
 
-        	progressBar.setProgressDrawable(this.getResources().getDrawable(R.drawable.progressbar_full));
+            progressBar.setProgressDrawable(this.getResources().getDrawable(R.drawable.progressbar_full));
 
             Log.i("Questions","Form complete");
             // if we get here, it means we don't have any more relevant questions after this one, so we mark it as complete
             progressBar.setProgress(details.totalQuestions); // completely fills the progressbar
         } else {
-        	nextButton.setImageResource(R.drawable.icon_chevron_right_brand);
+            nextButton.setImageResource(R.drawable.icon_chevron_right_brand);
 
-        	//TODO: _really_? This doesn't seem right
+            //TODO: _really_? This doesn't seem right
             nextButton.setTag("next");
 
-        	progressBar.setProgressDrawable(this.getResources().getDrawable(R.drawable.progressbar_modern));
+            progressBar.setProgressDrawable(this.getResources().getDrawable(R.drawable.progressbar_modern));
 
             progressBar.setProgress(details.completedQuestions);
         }
@@ -924,7 +924,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         updateBadgeInfo(details.requiredOnScreen, details.answeredOnScreen);
     }
     private void setNavBarVisibility() {
-        
+
         //Make sure the nav bar visibility is set
         int navBarVisibility = PreferencesActivity.getProgressBarMode(this).useNavigationBar() ? View.VISIBLE : View.GONE;
         View nav = this.findViewById(R.id.nav_pane);
@@ -938,7 +938,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         good ("floating-good", R.drawable.label_floating_good, R.color.cc_attention_positive_text),
         caution ("floating-caution", R.drawable.label_floating_caution, R.color.cc_light_warm_accent_color),
         bad ("floating-bad", R.drawable.label_floating_bad, R.color.cc_attention_negative_color);
-        
+
         final String label;
         final int resourceId;
         final int colorId;
@@ -947,7 +947,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             this.resourceId = resourceId;
             this.colorId = colorId;
         }
-        
+
         public String getAppearance() { return label;}
         public int getBackgroundDrawable() { return resourceId; }
         public int getColorId() { return colorId; }
@@ -957,9 +957,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         //TODO: this should actually be set up to scale per screen size.
         ArrayList<Pair<String, FloatingLabel>> smallLabels = new ArrayList<>();
         ArrayList<Pair<String, FloatingLabel>> largeLabels = new ArrayList<>();
-        
+
         FloatingLabel[] labelTypes = FloatingLabel.values();
-        
+
         if(currentView instanceof ODKView) {
             for(QuestionWidget widget : ((ODKView)currentView).getWidgets()) {
                 String hint = widget.getPrompt().getAppearanceHint();
@@ -976,8 +976,8 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 }
             }
         }
-    
-        
+
+
         final ViewGroup parent = (ViewGroup)this.findViewById(R.id.form_entry_label_layout);
         parent.removeAllViews();
 
@@ -1023,28 +1023,28 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
 
     private void updateBadgeInfo(int requiredOnScreen, int answeredOnScreen) {
-    	View badgeBorder = this.findViewById(R.id.nav_badge_border_drawer);
-    	TextView badge = (TextView)this.findViewById(R.id.nav_badge);
-    	
-    	//If we don't need this stuff, just bail
-    	if(requiredOnScreen <= 1) {
-    		//Hide all badge related items
-    		badgeBorder.setVisibility(View.INVISIBLE);
-    		badge.setVisibility(View.INVISIBLE);
-    		return;
-    	}
-  		//Otherwise, update badge stuff
-		badgeBorder.setVisibility(View.VISIBLE);
-		badge.setVisibility(View.VISIBLE);
-		
-		if(requiredOnScreen - answeredOnScreen == 0) {
-			//Unicode checkmark
-			badge.setText("\u2713");
-			badge.setBackgroundResource(R.drawable.badge_background_complete);
-		} else {
-			badge.setBackgroundResource(R.drawable.badge_background);
-			badge.setText(String.valueOf(requiredOnScreen - answeredOnScreen));
-		}
+        View badgeBorder = this.findViewById(R.id.nav_badge_border_drawer);
+        TextView badge = (TextView)this.findViewById(R.id.nav_badge);
+
+        //If we don't need this stuff, just bail
+        if(requiredOnScreen <= 1) {
+            //Hide all badge related items
+            badgeBorder.setVisibility(View.INVISIBLE);
+            badge.setVisibility(View.INVISIBLE);
+            return;
+        }
+        //Otherwise, update badge stuff
+        badgeBorder.setVisibility(View.VISIBLE);
+        badge.setVisibility(View.VISIBLE);
+
+        if(requiredOnScreen - answeredOnScreen == 0) {
+            //Unicode checkmark
+            badge.setText("\u2713");
+            badge.setBackgroundResource(R.drawable.badge_background_complete);
+        } else {
+            badge.setBackgroundResource(R.drawable.badge_background);
+            badge.setText(String.valueOf(requiredOnScreen - answeredOnScreen));
+        }
     }
 
     /**
@@ -1053,24 +1053,24 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      * returns the object in use currently.
      */
     private FormEntryPrompt getOnScreenPrompt(FormEntryPrompt prompt, ODKView view) {
-    	FormIndex index = prompt.getIndex();
-    	for(QuestionWidget widget : view.getWidgets()) {
-    		if(widget.getFormId().equals(index)) {
-    			return widget.getPrompt();
-    		}
-    	}
-    	return prompt;
-	}
+        FormIndex index = prompt.getIndex();
+        for(QuestionWidget widget : view.getWidgets()) {
+            if(widget.getFormId().equals(index)) {
+                return widget.getPrompt();
+            }
+        }
+        return prompt;
+    }
 
 
-	/**
+    /**
      * Refreshes the current view. the controller and the displayed view can get out of sync due to
      * dialogs and restarts caused by screen orientation changes, so they're resynchronized here.
      */
     private void refreshCurrentView() {
         refreshCurrentView(true);
     }
-    
+
     /**
      * Refreshes the current view. the controller and the displayed view can get out of sync due to
      * dialogs and restarts caused by screen orientation changes, so they're resynchronized here.
@@ -1091,8 +1091,8 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 || (mFormController.indexIsInFieldList() && !(event == FormEntryController.EVENT_GROUP))) {
             event = mFormController.stepToPreviousEvent();
         }
-        
-        //If we're at the beginning of form event, but don't show the screen for that, we need 
+
+        //If we're at the beginning of form event, but don't show the screen for that, we need
         //to get the next valid screen
         if(event == FormEntryController.EVENT_BEGINNING_OF_FORM && !PreferencesActivity.showFirstScreen(this)) {
             this.showNextView(true);
@@ -1124,7 +1124,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 .setIcon(R.drawable.ic_menu_start_conversation)
                 .setEnabled(hasMultipleLanguages);
 
-        
+
         menu.add(0, MENU_PREFERENCES, 0, StringUtils.getStringRobust(this, R.string.general_preferences)).setIcon(
                 android.R.drawable.ic_menu_preferences);
         return true;
@@ -1292,7 +1292,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
         return null;
     }
-    
+
     private String getHeaderString() {
         if(mHeaderString != null) {
             //Localization?
@@ -1312,7 +1312,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             case FormEntryController.EVENT_BEGINNING_OF_FORM:
                 View startView = View.inflate(this, R.layout.form_entry_start, null);
                 setTitle(getHeaderString());
-                
+
                 ((TextView) startView.findViewById(R.id.description)).setText(StringUtils.getStringSpannableRobust(this, R.string.enter_data_description, mFormController.getFormTitle()));
 
                 ((CheckBox) startView.findViewById(R.id.screen_form_entry_start_cbx_dismiss)).setText(StringUtils.getStringSpannableRobust(this, R.string.form_entry_start_hide));
@@ -1377,14 +1377,14 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
                 //If incomplete is not enabled, make sure this box is checked.
                 instanceComplete.setChecked(!mIncompleteEnabled || isInstanceComplete(true));
-                
+
                 if(mFormController.isFormReadOnly() || !mIncompleteEnabled) {
                     instanceComplete.setVisibility(View.GONE);
                 }
 
                 // edittext to change the displayed name of the instance
                 final EditText saveAs = (EditText) endView.findViewById(R.id.save_name);
-                
+
                 //TODO: Figure this out based on the content provider or some part of the context
                 saveAs.setVisibility(View.GONE);
                 endView.findViewById(R.id.save_form_as).setVisibility(View.GONE);
@@ -1406,7 +1406,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 });
 
                 String saveName = getDefaultFormTitle();
-                
+
                 saveAs.setText(saveName);
 
                 // Create 'save' button
@@ -1470,9 +1470,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                         registerForContextMenu(qw);
                     }
                 }
-                
+
                 updateNavigationCues(odkv);
-                
+
                 return odkv;
             default:
                 Log.e(TAG, "Attempted to create a view that does not exist.");
@@ -1510,7 +1510,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      */
     private void showNextView() { showNextView(false); }
     private void showNextView(boolean resuming) {
-        
+
         if(!resuming && mFormController.getEvent() == FormEntryController.EVENT_BEGINNING_OF_FORM) {
             //See if we should stop displaying the start screen
             CheckBox stopShowingIntroScreen = (CheckBox)mCurrentView.findViewById(R.id.screen_form_entry_start_cbx_dismiss);
@@ -1523,7 +1523,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 }
             }
         }
-        
+
         if (currentPromptIsQuestion()) {
             if (!saveAnswersForCurrentScreen(EVALUATE_CONSTRAINTS)) {
                 // A constraint was violated so a dialog should be showing.
@@ -1533,9 +1533,9 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         if (mFormController.getEvent() != FormEntryController.EVENT_END_OF_FORM) {
             int event;
-            
+
             try{
-            
+
             group_skip: do {
                 event = mFormController.stepToNextEvent(FormController.STEP_OVER_GROUP);
                 switch (event) {
@@ -1552,10 +1552,10 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                         createRepeatDialog();
                         break group_skip;
                     case FormEntryController.EVENT_GROUP:
-                    	//We only hit this event if we're at the _opening_ of a field
-                    	//list, so it seems totally fine to do it this way, technically
-                    	//though this should test whether the index is the field list
-                    	//host.
+                        //We only hit this event if we're at the _opening_ of a field
+                        //list, so it seems totally fine to do it this way, technically
+                        //though this should test whether the index is the field list
+                        //host.
                         if (mFormController.indexIsInFieldList()
                                 && mFormController.getQuestionPrompts().length != 0) {
                             View nextGroupView = createView(event);
@@ -1603,7 +1603,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         if (currentPromptIsQuestion()) {
             saveAnswersForCurrentScreen(DO_NOT_EVALUATE_CONSTRAINTS);
         }
-        
+
         FormIndex startIndex = mFormController.getFormIndex();
         FormIndex lastValidIndex = startIndex;
 
@@ -1620,24 +1620,24 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 event = mFormController.stepToPreviousEvent();
                 lastValidIndex = mFormController.getFormIndex();
             }
-                        
+
             //check if we're at the beginning and not doing the whole "First screen" thing
             if(event == FormEntryController.EVENT_BEGINNING_OF_FORM && !PreferencesActivity.showFirstScreen(this)) {
-                
+
                 //If so, we can't go all the way back here, so we've gotta hit the last index that was valid
                 mFormController.jumpToIndex(lastValidIndex);
-                
+
                 //Did we jump at all? (not sure how we could have, but there might be a mismatch)
                 if(lastValidIndex.equals(startIndex)) {
-                    //If not, don't even bother changing the view. 
+                    //If not, don't even bother changing the view.
                     //NOTE: This needs to be the same as the
                     //exit condition below, in case either changes
                     mBeenSwiped = false;
                     FormEntryActivity.this.triggerUserQuitInput();
                     return;
                 }
-                
-                //We might have walked all the way back still, which isn't great, 
+
+                //We might have walked all the way back still, which isn't great,
                 //so keep moving forward again until we find it
                 if(lastValidIndex.isBeginningOfFormIndex()) {
                     //there must be a repeat between where we started and the beginning of hte form, walk back up to it
@@ -1682,7 +1682,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             if(animateLastView) {
                 mCurrentView.startAnimation(mOutAnimation);
             }
-        	mViewPane.removeView(mCurrentView);
+            mViewPane.removeView(mCurrentView);
         }
 
         mInAnimation.setAnimationListener(this);
@@ -1744,7 +1744,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                 constraintText = StringUtils.getStringRobust(this, R.string.required_answer_error);
                 break;
         }
-        
+
         boolean displayed = false;
         //We need to see if question in violation is on the screen, so we can show this cleanly.
         for(QuestionWidget q : ((ODKView)mCurrentView).getWidgets()) {
@@ -1785,51 +1785,51 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      */
     private void createRepeatDialog() {
         ContextThemeWrapper wrapper = new ContextThemeWrapper(this, R.style.DialogBaseTheme);
-        
+
         View view = LayoutInflater.from(wrapper).inflate(R.layout.component_repeat_new_dialog, null);
 
 
         mRepeatDialog = new AlertDialog.Builder(wrapper).create();
-        
+
         final AlertDialog theDialog = mRepeatDialog;
-        
+
         mRepeatDialog.setView(view);
-        
+
         mRepeatDialog.setIcon(android.R.drawable.ic_dialog_info);
-        
+
         boolean hasNavBar = PreferencesActivity.getProgressBarMode(this).useNavigationBar();
-        
+
         //this is super gross...
         NavigationDetails details = null;
         if(hasNavBar) {
             details = calculateNavigationStatus();
         }
-        
+
         final boolean backExitsForm = hasNavBar && !details.relevantBeforeCurrentScreen;
-        
+
         final boolean nextExitsForm = hasNavBar && details.relevantAfterCurrentScreen == 0;
-        
+
         Button back = (Button)view.findViewById(R.id.component_repeat_back);
-        
+
         back.setOnClickListener(new OnClickListener() {
 
-			@Override
-			public void onClick(View v) {
-				if(backExitsForm) {
-					FormEntryActivity.this.triggerUserQuitInput();
-				} else {
-					theDialog.dismiss();
-		            FormEntryActivity.this.refreshCurrentView(false);
-				}
-			}
-        	
+            @Override
+            public void onClick(View v) {
+                if(backExitsForm) {
+                    FormEntryActivity.this.triggerUserQuitInput();
+                } else {
+                    theDialog.dismiss();
+                    FormEntryActivity.this.refreshCurrentView(false);
+                }
+            }
+
         });
-        
+
         Button newButton = (Button)view.findViewById(R.id.component_repeat_new);
 
         newButton.setOnClickListener(new OnClickListener() {
                         @Override
-			public void onClick(View v) {
+            public void onClick(View v) {
                             theDialog.dismiss();
                             try {
                                 mFormController.newRepeat();
@@ -1838,27 +1838,27 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                                 CommCareActivity.createErrorDialog(FormEntryActivity.this, e.getMessage(), EXIT);
                                 return;
                             }
-                            showNextView();				
-			}
+                            showNextView();
+            }
         });
-        
+
         Button skip = (Button)view.findViewById(R.id.component_repeat_skip);
-        
+
         skip.setOnClickListener(new OnClickListener() {
 
-			@Override
-			public void onClick(View v) {
-				theDialog.dismiss();
-            	if(!nextExitsForm) {
-            		showNextView();
-            	} else {
+            @Override
+            public void onClick(View v) {
+                theDialog.dismiss();
+                if(!nextExitsForm) {
+                    showNextView();
+                } else {
                     triggerUserFormComplete();
-            	}
-			}
-        	
+                }
+            }
+
         });
-        
-        
+
+
         back.setText(StringUtils.getStringSpannableRobust(this, R.string.repeat_go_back));
 
         //Load up our icons
@@ -1867,17 +1867,17 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
         Drawable doneIcon = getResources().getDrawable(R.drawable.icon_done);
         doneIcon.setBounds(0, 0, doneIcon.getIntrinsicWidth(), doneIcon.getIntrinsicHeight());
-        
-        
+
+
         if (mFormController.getLastRepeatCount() > 0) {
             mRepeatDialog.setTitle(StringUtils.getStringRobust(this, R.string.leaving_repeat_ask));
                     mRepeatDialog.setMessage(StringUtils.getStringSpannableRobust(this, R.string.add_another_repeat,
                             mFormController.getLastGroupText()));
             newButton.setText(StringUtils.getStringSpannableRobust(this, R.string.add_another));
             if(!nextExitsForm) {
-            	skip.setText(StringUtils.getStringSpannableRobust(this, R.string.leave_repeat_yes));
+                skip.setText(StringUtils.getStringSpannableRobust(this, R.string.leave_repeat_yes));
             } else {
-            	skip.setText(StringUtils.getStringSpannableRobust(this, R.string.leave_repeat_yes_exits));
+                skip.setText(StringUtils.getStringSpannableRobust(this, R.string.leave_repeat_yes_exits));
             }
 
         } else {
@@ -1886,22 +1886,22 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
                             mFormController.getLastGroupText()));
             newButton.setText(StringUtils.getStringSpannableRobust(this, R.string.entering_repeat));
             if(!nextExitsForm) {
-            	skip.setText(StringUtils.getStringSpannableRobust(this, R.string.add_repeat_no));
+                skip.setText(StringUtils.getStringSpannableRobust(this, R.string.add_repeat_no));
             } else {
-            	skip.setText(StringUtils.getStringSpannableRobust(this, R.string.add_repeat_no_exits));
+                skip.setText(StringUtils.getStringSpannableRobust(this, R.string.add_repeat_no_exits));
 
             }
         }
-        
+
         mRepeatDialog.setCancelable(false);
         mRepeatDialog.show();
 
         if(nextExitsForm) {
-        	skip.setCompoundDrawables(null, doneIcon, null, null);
-        } 
-        
+            skip.setCompoundDrawables(null, doneIcon, null, null);
+        }
+
         if(backExitsForm) {
-        	back.setCompoundDrawables(null, exitIcon, null, null);
+            back.setCompoundDrawables(null, exitIcon, null, null);
         }
         mBeenSwiped = false;
     }
@@ -1954,7 +1954,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
      * Create a dialog with options to save and exit, save, or quit without saving
      */
     private void createQuitDialog() {
-        final String[] items = mIncompleteEnabled ?  
+        final String[] items = mIncompleteEnabled ?
                 new String[] {StringUtils.getStringRobust(this, R.string.keep_changes), StringUtils.getStringRobust(this, R.string.do_not_save)} :
                 new String[] {StringUtils.getStringRobust(this, R.string.do_not_save)};
 
@@ -1995,7 +1995,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         mAlertDialog.getListView().setSelector(R.drawable.selector);
         mAlertDialog.show();
     }
-    
+
     private void discardChangesAndExit() {
 
         String selection =
@@ -2295,7 +2295,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             mAlertDialog.dismiss();
         }
         if(mRepeatDialog != null && mRepeatDialog.isShowing()) {
-        	mRepeatDialog.dismiss();
+            mRepeatDialog.dismiss();
         }
     }
 
@@ -2377,7 +2377,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             createQuitDialog();
         }
     }
-    
+
     /**
      * Get the default title for ODK's "Form title" field
      */
@@ -2405,7 +2405,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     }
 
     /**
-     * Call when the user is ready to save and return the current form as complete 
+     * Call when the user is ready to save and return the current form as complete
      */
     private void triggerUserFormComplete() {
         if (mFormController.isFormReadOnly()) {
@@ -2419,7 +2419,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
-            	triggerUserQuitInput();
+                triggerUserQuitInput();
                 return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 if (event.isAltPressed() && !mBeenSwiped) {
@@ -2497,12 +2497,12 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             // Newer menus may have already built the menu, before all data was ready
             invalidateOptionsMenu();
         }
-        
+
         Localizer mLocalizer = Localization.getGlobalLocalizerAdvanced();
-        
+
         if(mLocalizer != null){
             String mLocale = mLocalizer.getLocale();
-            
+
             if (mLocale != null && fc.getLanguages() != null && Arrays.asList(fc.getLanguages()).contains(mLocale)){
                 fc.setLanguage(mLocale);
             }
@@ -2620,7 +2620,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
 
     /**
      * Attempts to save an answer to the specified index.
-     * 
+     *
      * @param evaluateConstraints Should form contraints be checked when saving answer?
      * @return status as determined in FormEntryController
      */
@@ -2645,7 +2645,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     /**
      * Checks the database to determine if the current instance being edited has already been
      * 'marked completed'. A form can be 'unmarked' complete and then resaved.
-     * 
+     *
      * @return true if form has been marked completed, false otherwise.
      */
     private boolean isInstanceComplete(boolean end) {
@@ -2693,7 +2693,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
         }
     }
 
-    
+
     private void finishReturnInstance() {
         finishReturnInstance(true);
     }
@@ -2813,7 +2813,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
     public void widgetEntryChanged() {
         updateFormRelevencies();
         updateNavigationCues(this.mCurrentView);
-        
+
     }
     /**
      * Has form loading (via FormLoaderTask) completed?
@@ -2864,7 +2864,7 @@ public class FormEntryActivity extends FragmentActivity implements AnimationList
             }
             if (savedInstanceState.containsKey(KEY_INSTANCEDESTINATION)) {
                 mInstanceDestination = savedInstanceState.getString(KEY_INSTANCEDESTINATION);
-            } 
+            }
             if(savedInstanceState.containsKey(KEY_INCOMPLETE_ENABLED)) {
                 mIncompleteEnabled = savedInstanceState.getBoolean(KEY_INCOMPLETE_ENABLED);
             }
