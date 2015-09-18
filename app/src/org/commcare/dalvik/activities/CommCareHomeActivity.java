@@ -3,7 +3,6 @@ package org.commcare.dalvik.activities;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -53,14 +52,9 @@ import org.commcare.dalvik.odk.provider.FormsProviderAPI;
 import org.commcare.dalvik.odk.provider.InstanceProviderAPI;
 import org.commcare.dalvik.preferences.CommCarePreferences;
 import org.commcare.dalvik.preferences.DeveloperPreferences;
-import org.commcare.suite.model.StackFrameStep;
-import org.commcare.suite.model.Text;
-import org.commcare.util.CommCareSession;
 import org.commcare.util.SessionFrame;
-import org.javarosa.core.model.condition.EvaluationContext;
 import org.javarosa.core.services.Logger;
 import org.javarosa.core.services.locale.Localization;
-import org.javarosa.xpath.XPathException;
 import org.odk.collect.android.activities.FormEntryActivity;
 import org.odk.collect.android.tasks.FormLoaderTask;
 
@@ -71,18 +65,9 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
 
     private static final int LOGIN_USER = 0;
     private static final int GET_COMMAND = 1;
-    private static final int GET_CASE = 2;
-    private static final int MODEL_RESULT = 4;
-    public static final int INIT_APP = 8;
     private static final int GET_INCOMPLETE_FORM = 16;
-    public static final int UPGRADE_APP = 32;
-    private static final int REPORT_PROBLEM_ACTIVITY = 64;
 
-    /**
-     * Request code for automatically validating media from home dispatch.
-     * Should signal a return from CommCareVerificationActivity.
-     */
-    public static final int MISSING_MEDIA_ACTIVITY=256;
+
     private static final int DUMP_FORMS_ACTIVITY=512;
     private static final int WIFI_DIRECT_ACTIVITY=1024;
     public static final int CONNECTION_DIAGNOSTIC_ACTIVITY=2048;
@@ -94,9 +79,6 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
      * CommCareVerificationActivity.
      */
     private static final int MEDIA_VALIDATOR_ACTIVITY=8192;
-
-
-    private static final int DIALOG_CORRUPTED = 1;
 
     private static final int MENU_PREFERENCES = Menu.FIRST;
     private static final int MENU_UPDATE = Menu.FIRST + 1;
@@ -115,8 +97,6 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
      */
     public static final int RESULT_RESTART = 3;
 
-    private static final String SESSION_REQUEST = "ccodk_session_request";
-
     private static final String AIRPLANE_MODE_CATEGORY = "airplane-mode";
 
 
@@ -130,6 +110,8 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
         uiController = new HomeActivityUIController(this);
         uiController.setupUI();
     }
+
+    // region - methods used in onClick listeners of home screen buttons
 
     protected void goToFormArchive(boolean incomplete) {
         goToFormArchive(incomplete, null);
@@ -171,16 +153,21 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
                 displayMessage(Localization.get("notification.sync.connections.action"), true, true);
                 CommCareApplication._().reportNotificationMessage(NotificationMessageFactory.message(NotificationMessageFactory.StockMessages.Sync_NoConnections, AIRPLANE_MODE_CATEGORY));
             }
-            return;
+        } else {
+            startSync();
         }
+    }
+
+    private void startSync() {
         CommCareApplication._().clearNotifications(AIRPLANE_MODE_CATEGORY);
         boolean formsSentToServer = checkAndStartUnsentTask(true);
         if(!formsSentToServer) {
-            // No forms needed to be sent to the server, so let's just
-            // trigger a data sync.
+            // No forms needed to be sent to the server, so let's just trigger a data sync.
             syncData(false);
         }
     }
+
+    // endregion
 
     private void syncData(boolean formsToSend) {
         User u;
@@ -661,92 +648,6 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
     }
 
     /**
-     * Polls the CommCareSession to determine what information is needed in order to proceed with
-     * the next entry step in the session and then executes the action to get that info, OR
-     * proceeds with trying to enter the form if no more info is needed
-     */
-    private void startNextFetch() {
-
-        final AndroidSessionWrapper asw = CommCareApplication._().getCurrentSessionWrapper();
-        CommCareSession session = asw.getSession();
-        String needed = session.getNeededData();
-
-        if (needed == null) {
-            readyToProceed(asw);
-        } else if (needed.equals(SessionFrame.STATE_COMMAND_ID)) {
-            handleGetCommand(session);
-        } else if (needed.equals(SessionFrame.STATE_DATUM_VAL)) {
-            handleGetDatum(session);
-        } else if (needed.equals(SessionFrame.STATE_DATUM_COMPUTED)) {
-            handleCompute(asw);
-        }
-    }
-
-
-    // region: private helper methods used by startNextFetch(), to prevent it from being one
-    // extremely long method
-
-    private void readyToProceed(final AndroidSessionWrapper asw) {
-        EvaluationContext ec = asw.getEvaluationContext();
-        //See if we failed any of our assertions
-        Text text = asw.getSession().getCurrentEntry().getAssertions().getAssertionFailure(ec);
-        if (text != null) {
-            createErrorDialog(text.evaluate(ec), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int i) {
-                    asw.getSession().stepBack();
-                    CommCareHomeActivity.this.startNextFetch();
-                }
-            });
-            return;
-        }
-
-        if(asw.getSession().getForm() == null) {
-            if(asw.terminateSession()) {
-                startNextFetch();
-            } else {
-                uiController.refreshView();
-            }
-        } else {
-            startFormEntry(CommCareApplication._().getCurrentSessionWrapper());
-        }
-    }
-
-    private void handleGetCommand(CommCareSession session) {
-        Intent i;
-        if (DeveloperPreferences.isGridMenuEnabled()) {
-            i = new Intent(getApplicationContext(), MenuGrid.class);
-        } else {
-            i = new Intent(getApplicationContext(), MenuList.class);
-        }
-        i.putExtra(SessionFrame.STATE_COMMAND_ID, session.getCommand());
-        startActivityForResult(i, GET_COMMAND);
-    }
-
-    private void handleGetDatum(CommCareSession session) {
-        Intent i = new Intent(getApplicationContext(), EntitySelectActivity.class);
-        i.putExtra(SessionFrame.STATE_COMMAND_ID, session.getCommand());
-        StackFrameStep lastPopped = session.getPoppedStep();
-        if (lastPopped != null && SessionFrame.STATE_DATUM_VAL.equals(lastPopped.getType())) {
-            i.putExtra(EntitySelectActivity.EXTRA_ENTITY_KEY, lastPopped.getValue());
-        }
-        startActivityForResult(i, GET_CASE);
-    }
-
-    private void handleCompute(AndroidSessionWrapper asw) {
-        EvaluationContext ec = asw.getEvaluationContext();
-        try {
-            asw.getSession().setComputedDatum(ec);
-        } catch (XPathException e) {
-            displayException(e);
-        }
-        startNextFetch();
-    }
-
-    // endregion
-
-
-    /**
      * Create (or re-use) a form record and pass it to the form entry activity
      * launcher. If there is an existing incomplete form that uses the same
      * case, ask the user if they want to edit or delete that one.
@@ -1161,38 +1062,6 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
 
     private boolean hasP2p() {
         return (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH && getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT));
-    }
-
-    protected Dialog onCreateDialog(int id) {
-        if (id == DIALOG_CORRUPTED) {
-            return createAskFixDialog();
-        } else return null;
-    }
-
-    private Dialog createAskFixDialog() {
-        //TODO: Localize this in theory, but really shift it to the upgrade/management state
-        AlertDialog mAttemptFixDialog = new AlertDialog.Builder(this).create();
-
-        mAttemptFixDialog.setTitle("Storage is Corrupt :/");
-        mAttemptFixDialog.setMessage("Sorry, something really bad has happened, and the app can't start up. With your permission CommCare can try to repair itself if you have network access.");
-        DialogInterface.OnClickListener attemptFixDialog = new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int i) {
-                switch (i) {
-                    case DialogInterface.BUTTON_POSITIVE: // attempt repair
-                        Intent intent = new Intent(CommCareHomeActivity.this, RecoveryActivity.class);
-                        startActivity(intent);
-                        break;
-                    case DialogInterface.BUTTON_NEGATIVE: // Shut down
-                        CommCareHomeActivity.this.finish();
-                        break;
-                }
-            }
-        };
-        mAttemptFixDialog.setCancelable(false);
-        mAttemptFixDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Enter Recovery Mode", attemptFixDialog);
-        mAttemptFixDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Shut Down", attemptFixDialog);
-
-        return mAttemptFixDialog;
     }
 
     @Override

@@ -1,13 +1,17 @@
 package org.commcare.dalvik.activities;
 
-import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import org.commcare.android.database.global.models.ApplicationRecord;
 import org.commcare.android.database.user.models.SessionStateDescriptor;
+import org.commcare.android.framework.CommCareActivity;
 import org.commcare.android.javarosa.AndroidLogger;
+import org.commcare.android.models.AndroidSessionWrapper;
 import org.commcare.android.util.ACRAUtil;
 import org.commcare.android.util.AndroidCommCarePlatform;
 import org.commcare.android.util.SessionUnavailableException;
@@ -15,15 +19,22 @@ import org.commcare.dalvik.R;
 import org.commcare.dalvik.application.AndroidShortcuts;
 import org.commcare.dalvik.application.CommCareApp;
 import org.commcare.dalvik.application.CommCareApplication;
+import org.commcare.dalvik.preferences.DeveloperPreferences;
+import org.commcare.suite.model.StackFrameStep;
+import org.commcare.suite.model.Text;
+import org.commcare.util.CommCareSession;
+import org.commcare.util.SessionFrame;
+import org.javarosa.core.model.condition.EvaluationContext;
 import org.javarosa.core.services.Logger;
 import org.javarosa.core.services.locale.Localization;
+import org.javarosa.xpath.XPathException;
 
 import java.text.SimpleDateFormat;
 
 /**
  * Created by amstone326 on 9/17/15.
  */
-public class CommCareDispatchActivity extends Activity {
+public class CommCareDispatchActivity extends CommCareActivity {
 
     private static final int LOGIN_USER = 0;
     private static final int GET_COMMAND = 1;
@@ -33,6 +44,16 @@ public class CommCareDispatchActivity extends Activity {
     private static final int GET_INCOMPLETE_FORM = 16;
     public static final int UPGRADE_APP = 32;
     private static final int REPORT_PROBLEM_ACTIVITY = 64;
+
+    /**
+     * Request code for automatically validating media from home dispatch.
+     * Should signal a return from CommCareVerificationActivity.
+     */
+    public static final int MISSING_MEDIA_ACTIVITY = 256;
+
+    private static final int DIALOG_CORRUPTED = 1;
+
+    private static final String SESSION_REQUEST = "ccodk_session_request";
 
     // The API allows for external calls. When this occurs, redispatch to their
     // activity instead of commcare.
@@ -84,7 +105,7 @@ public class CommCareDispatchActivity extends Activity {
         if (CommCareApplication._().getCurrentApp() != null) {
             platform = CommCareApplication._().getCommCarePlatform();
         }
-        dispatchNextActivity();
+        dispatchProperActivity();
     }
 
     private void checkForDbFailState() {
@@ -104,8 +125,7 @@ public class CommCareDispatchActivity extends Activity {
         }
     }
 
-    //decide if we should even be in the home activity
-    private void dispatchNextActivity() {
+    private void dispatchProperActivity() {
         checkForDbFailState();
         CommCareApp currentApp = CommCareApplication._().getCurrentApp();
 
@@ -124,11 +144,11 @@ public class CommCareDispatchActivity extends Activity {
                     boolean unseated = handleUnusableApp(currentRecord);
                     if (unseated) {
                         // Recurse in order to make the correct decision based on the new state
-                        dispatchHomeScreen();
+                        dispatchProperActivity();
                     }
                 } else if (!CommCareApplication._().getSession().isActive()) {
                     // Path 1c: The user is not logged in
-                    returnToLogin();
+                    launchLoginActivity();
                 } else if (this.getIntent().hasExtra(SESSION_REQUEST)) {
                     // Path 1d: CommCare was launched from an external app, with a session descriptor
                     handleExternalLaunch();
@@ -142,8 +162,8 @@ public class CommCareDispatchActivity extends Activity {
                     // Path 1g: There is a sync pending
                     handlePendingSync();
                 } else {
-                    // Path 1h: Display the normal home screen!
-                    uiController.refreshView();
+                    // Path 1h: Normal home activity launch
+                    launchHomeActivity();
                 }
             } catch (SessionUnavailableException sue) {
                 launchLoginActivity();
@@ -153,31 +173,16 @@ public class CommCareDispatchActivity extends Activity {
         // Path 2: There is no seated app, so launch CommCareSetupActivity
         else {
             if (CommCareApplication._().usableAppsPresent()) {
-                // This is BAD -- means we ended up at home screen with no seated app, but there
-                // are other usable apps available. Should not be able to happen.
-                Logger.log(AndroidLogger.TYPE_ERROR_WORKFLOW, "In CommCareHomeActivity with no" +
+                // This is BAD -- means that there is a usable app available which
+                // aCommCareApplication did not seat. Should not be able to happen.
+                Logger.log(AndroidLogger.TYPE_ERROR_WORKFLOW, "In CommCareDispatchActivity with no" +
                         "seated app, but there are other usable apps available on the device.");
             }
             launchSetupActivity();
         }
     }
 
-    // region: activity dispatch methods
-
-    private void launchLoginActivity() {
-        Intent i = new Intent(this.getApplicationContext(), LoginActivity.class);
-        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        this.startActivityForResult(i, LOGIN_USER);
-    }
-
-    private void launchSetupActivity() {
-        Intent i = new Intent(getApplicationContext(), CommCareSetupActivity.class);
-        this.startActivityForResult(i, INIT_APP);
-    }
-
-    // endregion
-
-    // region: private helper methods used by dispatchHomeScreen(), to prevent it from being one
+    // region: private helper methods used by dispatchNextActivity(), to prevent it from being one
     // extremely long method
 
     private void handleDamagedApp() {
@@ -190,7 +195,7 @@ public class CommCareDispatchActivity extends Activity {
                 showDialog(DIALOG_CORRUPTED);
             } catch(SessionUnavailableException e) {
                 // Otherwise, log in first
-                returnToLogin();
+                launchLoginActivity();
             }
         }
     }
@@ -227,8 +232,7 @@ public class CommCareDispatchActivity extends Activity {
      */
     private void handleUnvalidatedApp() {
         if (CommCareApplication._().shouldSeeMMVerification()) {
-            Intent i = new Intent(this, CommCareVerificationActivity.class);
-            this.startActivityForResult(i, MISSING_MEDIA_ACTIVITY);
+            launchVerificationActivity();
         } else {
             // Means that there are no usable apps, but there are multiple apps who all don't have
             // MM verified -- show an error message and shut down
@@ -245,7 +249,7 @@ public class CommCareDispatchActivity extends Activity {
         SessionStateDescriptor ssd = new SessionStateDescriptor();
         ssd.fromBundle(sessionRequest);
         CommCareApplication._().getCurrentSessionWrapper().loadFromStateDescription(ssd);
-        this.startNextFetch();
+        startNextFetch();
     }
 
     private void handleShortcutLaunch() {
@@ -275,10 +279,11 @@ public class CommCareDispatchActivity extends Activity {
         long lastSync = CommCareApplication._().getCurrentApp().getAppPreferences().getLong("last-ota-restore", 0);
         String footer = lastSync == 0 ? "never" : SimpleDateFormat.getDateTimeInstance().format(lastSync);
         Logger.log(AndroidLogger.TYPE_USER, "autosync triggered. Last Sync|" + footer);
-        uiController.refreshView();
 
-        //Send unsent forms first. If the process detects unsent forms
-        //it will sync after the are submitted
+        //uiController.refreshView();
+
+        // Send unsent forms first. If the process detects unsent forms it will sync after they
+        // are submitted
         if(!this.checkAndStartUnsentTask(true)) {
             //If there were no unsent forms to be sent, we should immediately
             //trigger a sync
@@ -288,6 +293,149 @@ public class CommCareDispatchActivity extends Activity {
 
     private void createNoStorageDialog() {
         CommCareApplication._().triggerHandledAppExit(this, Localization.get("app.storage.missing.message"), Localization.get("app.storage.missing.title"));
+    }
+
+    // endregion
+
+
+    // region: activity dispatch methods
+
+    private void launchLoginActivity() {
+        Intent i = new Intent(getApplicationContext(), LoginActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        this.startActivityForResult(i, LOGIN_USER);
+    }
+
+    private void launchHomeActivity() {
+        Intent i = new Intent(getApplicationContext(), CommCareHomeActivity.class);
+        this.startActivityForResult(i, INIT_APP);
+    }
+
+    private void launchSetupActivity() {
+        Intent i = new Intent(getApplicationContext(), CommCareSetupActivity.class);
+        this.startActivityForResult(i, INIT_APP);
+    }
+
+    private void launchVerificationActivity() {
+        Intent i = new Intent(this, CommCareVerificationActivity.class);
+        this.startActivityForResult(i, MISSING_MEDIA_ACTIVITY);
+    }
+
+    // endregion
+
+    private Dialog createAskFixDialog() {
+        //TODO: Localize this in theory, but really shift it to the upgrade/management state
+        AlertDialog mAttemptFixDialog = new AlertDialog.Builder(this).create();
+
+        mAttemptFixDialog.setTitle("Storage is Corrupt :/");
+        mAttemptFixDialog.setMessage("Sorry, something really bad has happened, and the app can't start up. With your permission CommCare can try to repair itself if you have network access.");
+        DialogInterface.OnClickListener attemptFixDialog = new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int i) {
+                switch (i) {
+                    case DialogInterface.BUTTON_POSITIVE: // attempt repair
+                        Intent intent = new Intent(CommCareDispatchActivity.this, RecoveryActivity.class);
+                        startActivity(intent);
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE: // Shut down
+                        CommCareDispatchActivity.this.finish();
+                        break;
+                }
+            }
+        };
+        mAttemptFixDialog.setCancelable(false);
+        mAttemptFixDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Enter Recovery Mode", attemptFixDialog);
+        mAttemptFixDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Shut Down", attemptFixDialog);
+
+        return mAttemptFixDialog;
+    }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        if (id == DIALOG_CORRUPTED) {
+            return createAskFixDialog();
+        } else return null;
+    }
+
+    /**
+     * Polls the CommCareSession to determine what information is needed in order to proceed with
+     * the next entry step in the session and then executes the action to get that info, OR
+     * proceeds with trying to enter the form if no more info is needed
+     */
+    private void startNextFetch() {
+
+        final AndroidSessionWrapper asw = CommCareApplication._().getCurrentSessionWrapper();
+        CommCareSession session = asw.getSession();
+        String needed = session.getNeededData();
+
+        if (needed == null) {
+            readyToProceed(asw);
+        } else if (needed.equals(SessionFrame.STATE_COMMAND_ID)) {
+            handleGetCommand(session);
+        } else if (needed.equals(SessionFrame.STATE_DATUM_VAL)) {
+            handleGetDatum(session);
+        } else if (needed.equals(SessionFrame.STATE_DATUM_COMPUTED)) {
+            handleCompute(asw);
+        }
+    }
+
+    // region: private helper methods used by startNextFetch(), to prevent it from being one
+    // extremely long method
+
+    private void readyToProceed(final AndroidSessionWrapper asw) {
+        EvaluationContext ec = asw.getEvaluationContext();
+        //See if we failed any of our assertions
+        Text text = asw.getSession().getCurrentEntry().getAssertions().getAssertionFailure(ec);
+        if (text != null) {
+            createErrorDialog(text.evaluate(ec), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int i) {
+                    asw.getSession().stepBack();
+                    CommCareHomeActivity.this.startNextFetch();
+                }
+            });
+            return;
+        }
+
+        if(asw.getSession().getForm() == null) {
+            if(asw.terminateSession()) {
+                startNextFetch();
+            } else {
+                uiController.refreshView();
+            }
+        } else {
+            startFormEntry(CommCareApplication._().getCurrentSessionWrapper());
+        }
+    }
+
+    private void handleGetCommand(CommCareSession session) {
+        Intent i;
+        if (DeveloperPreferences.isGridMenuEnabled()) {
+            i = new Intent(getApplicationContext(), MenuGrid.class);
+        } else {
+            i = new Intent(getApplicationContext(), MenuList.class);
+        }
+        i.putExtra(SessionFrame.STATE_COMMAND_ID, session.getCommand());
+        startActivityForResult(i, GET_COMMAND);
+    }
+
+    private void handleGetDatum(CommCareSession session) {
+        Intent i = new Intent(getApplicationContext(), EntitySelectActivity.class);
+        i.putExtra(SessionFrame.STATE_COMMAND_ID, session.getCommand());
+        StackFrameStep lastPopped = session.getPoppedStep();
+        if (lastPopped != null && SessionFrame.STATE_DATUM_VAL.equals(lastPopped.getType())) {
+            i.putExtra(EntitySelectActivity.EXTRA_ENTITY_KEY, lastPopped.getValue());
+        }
+        startActivityForResult(i, GET_CASE);
+    }
+
+    private void handleCompute(AndroidSessionWrapper asw) {
+        EvaluationContext ec = asw.getEvaluationContext();
+        try {
+            asw.getSession().setComputedDatum(ec);
+        } catch (XPathException e) {
+            displayException(e);
+        }
+        startNextFetch();
     }
 
     // endregion
