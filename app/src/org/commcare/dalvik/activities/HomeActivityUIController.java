@@ -130,7 +130,7 @@ public class HomeActivityUIController {
         setupSyncButton();
     }
 
-    // region - setup methods for all buttons
+    // REGION - setup methods for all buttons
 
     private void setupStartButton() {
         startButton = adapter.getButton(R.layout.home_start_button);
@@ -174,10 +174,10 @@ public class HomeActivityUIController {
         adapter.setOnClickListenerForButton(R.layout.home_sync_button, getSyncButtonListener());
     }
 
-    // endregion
+    // ENDREGION
 
 
-    // region - generators for the listeners for each button
+    // REGION - generators for the listeners for each button
 
     private View.OnClickListener getViewOldFormsListener() {
         return new View.OnClickListener() {
@@ -215,15 +215,15 @@ public class HomeActivityUIController {
         return new View.OnClickListener() {
             public void onClick(View v) {
                 CommCareApplication._().closeUserSession();
-                activity.returnToLogin();
+                activity.goToLogin();
             }
         };
     }
 
-    // endregion
+    // ENDREGION
 
 
-    // region - text setters for all buttons
+    // REGION - text setters for all buttons
 
     private void setSyncButtonText(Pair<Long, int[]> syncDetails, String syncTextKey) {
         if (syncTextKey == null) {
@@ -254,7 +254,7 @@ public class HomeActivityUIController {
         }
     }
 
-    // endregion
+    // ENDREGION
 
 
     protected void refreshView() {
@@ -269,7 +269,7 @@ public class HomeActivityUIController {
         try {
             syncDetails = CommCareApplication._().getSyncDisplayParameters();
         } catch (UserStorageClosedException e) {
-            activity.returnToLogin();
+            activity.goToLogin();
             return;
         }
 

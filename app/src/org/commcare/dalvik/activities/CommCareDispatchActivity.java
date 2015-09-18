@@ -6,8 +6,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import org.commcare.android.database.global.models.ApplicationRecord;
+import org.commcare.android.database.user.models.FormRecord;
 import org.commcare.android.database.user.models.SessionStateDescriptor;
 import org.commcare.android.framework.CommCareActivity;
 import org.commcare.android.javarosa.AndroidLogger;
@@ -19,6 +21,7 @@ import org.commcare.dalvik.R;
 import org.commcare.dalvik.application.AndroidShortcuts;
 import org.commcare.dalvik.application.CommCareApp;
 import org.commcare.dalvik.application.CommCareApplication;
+import org.commcare.dalvik.preferences.CommCarePreferences;
 import org.commcare.dalvik.preferences.DeveloperPreferences;
 import org.commcare.suite.model.StackFrameStep;
 import org.commcare.suite.model.Text;
@@ -46,12 +49,18 @@ public class CommCareDispatchActivity extends CommCareActivity {
     private static final int REPORT_PROBLEM_ACTIVITY = 64;
 
     /**
-     * Request code for automatically validating media from home dispatch.
+     * Request code for automatically validating media from dispatch.
      * Should signal a return from CommCareVerificationActivity.
      */
     public static final int MISSING_MEDIA_ACTIVITY = 256;
 
     private static final int DIALOG_CORRUPTED = 1;
+
+    /**
+     * Restart is a special CommCare return code which means that the session was invalidated in the
+     * calling activity and that the current session should be resynced
+     */
+    public static final int RESULT_RESTART = 3;
 
     private static final String SESSION_REQUEST = "ccodk_session_request";
 
@@ -106,6 +115,114 @@ public class CommCareDispatchActivity extends CommCareActivity {
             platform = CommCareApplication._().getCommCarePlatform();
         }
         dispatchProperActivity();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if(resultCode == RESULT_RESTART) {
+            startNextFetch();
+        } else {
+            // if handling new return code (want to return to home screen) put a return at the end of your statement
+            switch(requestCode) {
+                case INIT_APP:
+                    if (resultCode == RESULT_CANCELED) {
+                        // User pressed back button from install screen, so take them out of CommCare
+                        this.finish();
+                        return;
+                    } else if (resultCode == RESULT_OK) {
+                        //CTS - Removed a call to initializing resources here. The engine takes care of that.
+                        //We do, however, need to re-init this screen to include new translations
+                        uiController.configUI();
+                        return;
+                    }
+                    break;
+                case UPGRADE_APP:
+                    if(resultCode == RESULT_CANCELED) {
+                        //This might actually be bad, but try to go about your business
+                        //The onResume() will take us to the screen
+                        return;
+                    } else if(resultCode == RESULT_OK) {
+                        if(intent.getBooleanExtra(CommCareSetupActivity.KEY_REQUIRE_REFRESH, true)) {
+                            Toast.makeText(this, Localization.get("update.success.refresh"), Toast.LENGTH_LONG).show();
+                            CommCareApplication._().closeUserSession();
+                        }
+                        return;
+                    }
+                    break;
+                case MISSING_MEDIA_ACTIVITY:
+                    if(resultCode == RESULT_CANCELED){
+                        // exit the app if media wasn't validated on automatic
+                        // validation check.
+                        this.finish();
+                        return;
+                    } else if(resultCode == RESULT_OK){
+                        Toast.makeText(this, "Media Validated!", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                case LOGIN_USER:
+                    if(resultCode == RESULT_CANCELED) {
+                        this.finish();
+                        return;
+                    } else if(resultCode == RESULT_OK) {
+                        if (!intent.getBooleanExtra(LoginActivity.ALREADY_LOGGED_IN, false)) {
+                            uiController.refreshView();
+
+                            //Unless we're about to sync (which will handle this
+                            //in a blocking fashion), trigger off a regular unsent
+                            //task processor
+                            if(!CommCareApplication._().isSyncPending(false)) {
+                                checkAndStartUnsentTask(false);
+                            }
+
+                            if(isDemoUser()) {
+                                showDemoModeWarning();
+                            }
+                        }
+                        return;
+                    }
+                    break;
+                case GET_COMMAND:
+                    //TODO: We might need to load this from serialized state?
+                    currentState = CommCareApplication._().getCurrentSessionWrapper();
+                    if(resultCode == RESULT_CANCELED) {
+                        if(currentState.getSession().getCommand() == null) {
+                            //Needed a command, and didn't already have one. Stepping back from
+                            //an empty state, Go home!
+                            currentState.reset();
+                            uiController.refreshView();
+                            return;
+                        } else {
+                            currentState.getSession().stepBack();
+                            break;
+                        }
+                    } else if(resultCode == RESULT_OK) {
+                        //Get our command, set it, and continue forward
+                        String command = intent.getStringExtra(SessionFrame.STATE_COMMAND_ID);
+                        currentState.getSession().setCommand(command);
+                        break;
+                    }
+                    break;
+                case GET_CASE:
+                    //TODO: We might need to load this from serialized state?
+                    currentState = CommCareApplication._().getCurrentSessionWrapper();
+                    if(resultCode == RESULT_CANCELED) {
+                        currentState.getSession().stepBack();
+                        break;
+                    } else if(resultCode == RESULT_OK) {
+                        currentState.getSession().setDatum(currentState.getSession().getNeededDatum().getDataId(), intent.getStringExtra(SessionFrame.STATE_DATUM_VAL));
+                        break;
+                    }
+                case MODEL_RESULT:
+                    boolean fetchNext = processReturnFromFormEntry(resultCode, intent);
+                    if (!fetchNext) {
+                        return;
+                    }
+                    break;
+            }
+
+            startNextFetch();
+        }
+        super.onActivityResult(requestCode, resultCode, intent);
     }
 
     private void checkForDbFailState() {
@@ -240,7 +357,6 @@ public class CommCareDispatchActivity extends CommCareActivity {
                     Localization.get("multiple.apps.unverified.message"),
                     Localization.get("multiple.apps.unverified.title"));
         }
-
     }
 
     private void handleExternalLaunch() {
@@ -390,7 +506,7 @@ public class CommCareDispatchActivity extends CommCareActivity {
                 @Override
                 public void onClick(DialogInterface dialog, int i) {
                     asw.getSession().stepBack();
-                    CommCareHomeActivity.this.startNextFetch();
+                    CommCareDispatchActivity.this.startNextFetch();
                 }
             });
             return;
@@ -439,5 +555,42 @@ public class CommCareDispatchActivity extends CommCareActivity {
     }
 
     // endregion
+
+    /**
+     * Create (or re-use) a form record and pass it to the form entry activity
+     * launcher. If there is an existing incomplete form that uses the same
+     * case, ask the user if they want to edit or delete that one.
+     *
+     * @param state Needed for FormRecord manipulations
+     */
+    private void startFormEntry(AndroidSessionWrapper state) {
+        if (state.getFormRecordId() == -1) {
+            if (CommCarePreferences.isIncompleteFormsEnabled()) {
+                // Are existing (incomplete) forms using the same case?
+                SessionStateDescriptor existing =
+                        state.getExistingIncompleteCaseDescriptor();
+
+                if (existing != null) {
+                    // Ask user if they want to just edit existing form that
+                    // uses the same case.
+                    createAskUseOldDialog(state, existing);
+                    return;
+                }
+            }
+
+            // Generate a stub form record and commit it
+            state.commitStub();
+        } else {
+            Logger.log("form-entry", "Somehow ended up starting form entry with old state?");
+        }
+
+        FormRecord record = state.getFormRecord();
+
+        if (CommCareApplication._().getCurrentApp() != null) {
+            platform = CommCareApplication._().getCommCarePlatform();
+        }
+
+        formEntry(platform.getFormContentUri(record.getFormNamespace()), record, CommCareActivity.getTitle(this, null));
+    }
 
 }

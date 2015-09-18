@@ -26,7 +26,6 @@ import org.commcare.android.database.user.models.FormRecord;
 import org.commcare.android.database.user.models.SessionStateDescriptor;
 import org.commcare.android.database.user.models.User;
 import org.commcare.android.framework.BreadcrumbBarFragment;
-import org.commcare.android.framework.CommCareActivity;
 import org.commcare.android.framework.SessionAwareCommCareActivity;
 import org.commcare.android.javarosa.AndroidLogger;
 import org.commcare.android.logic.GlobalConstants;
@@ -65,8 +64,12 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
 
     private static final int LOGIN_USER = 0;
     private static final int GET_COMMAND = 1;
+    private static final int GET_CASE = 2;
+    private static final int MODEL_RESULT = 4;
+    public static final int INIT_APP = 8;
     private static final int GET_INCOMPLETE_FORM = 16;
-
+    public static final int UPGRADE_APP = 32;
+    private static final int REPORT_PROBLEM_ACTIVITY = 64;
 
     private static final int DUMP_FORMS_ACTIVITY=512;
     private static final int WIFI_DIRECT_ACTIVITY=1024;
@@ -91,11 +94,6 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
     private static final int MENU_SAVED_FORMS = Menu.FIRST + 8;
     private static final int MENU_ABOUT = Menu.FIRST + 9;
 
-    /**
-     * Restart is a special CommCare return code which means that the session was invalidated in the
-     * calling activity and that the current session should be resynced
-     */
-    public static final int RESULT_RESTART = 3;
 
     private static final String AIRPLANE_MODE_CATEGORY = "airplane-mode";
 
@@ -111,7 +109,7 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
         uiController.setupUI();
     }
 
-    // region - methods used in onClick listeners of home screen buttons
+    // REGION - methods used in onClick listeners of home screen buttons
 
     protected void goToFormArchive(boolean incomplete) {
         goToFormArchive(incomplete, null);
@@ -138,10 +136,10 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
         startActivityForResult(i, GET_COMMAND);
     }
 
-    protected void returnToLogin() {
+    protected void goToLogin() {
         Intent i = new Intent(this.getApplicationContext(), LoginActivity.class);
         i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        this.startActivityForResult(i, LOGIN_USER);
+        startActivity(i);
     }
 
     protected void attemptSync() {
@@ -167,7 +165,8 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
         }
     }
 
-    // endregion
+    // ENDREGION
+
 
     private void syncData(boolean formsToSend) {
         User u;
@@ -262,124 +261,41 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if(resultCode == RESULT_RESTART) {
-            startNextFetch();
-        } else {
-            // if handling new return code (want to return to home screen) put a return at the end of your statement
-            switch(requestCode) {
-            case INIT_APP:
-                if (resultCode == RESULT_CANCELED) {
-                    // User pressed back button from install screen, so take them out of CommCare
-                    this.finish();
-                    return;
-                } else if (resultCode == RESULT_OK) {
-                    //CTS - Removed a call to initializing resources here. The engine takes care of that.
-                    //We do, however, need to re-init this screen to include new translations
-                    uiController.configUI();
-                    return;
-                }
-                break;
+        switch(requestCode) {
             case UPGRADE_APP:
-                if(resultCode == RESULT_CANCELED) {
-                    //This might actually be bad, but try to go about your business
-                    //The onResume() will take us to the screen
-                    return;
-                } else if(resultCode == RESULT_OK) {
-                    if(intent.getBooleanExtra(CommCareSetupActivity.KEY_REQUIRE_REFRESH, true)) {
-                        Toast.makeText(this, Localization.get("update.success.refresh"), Toast.LENGTH_LONG).show();
-                        CommCareApplication._().closeUserSession();
-                    }
-                    return;
-                }
+                handleReturnFromUpgrade(resultCode, intent);
                 break;
             case PREFERENCES_ACTIVITY:
                 uiController.configUI();
-                return;
+                break;
             case MEDIA_VALIDATOR_ACTIVITY:
-                if(resultCode == RESULT_CANCELED){
-                    return;
-                } else if (resultCode == RESULT_OK){
-                    Toast.makeText(this, "Media Validated!", Toast.LENGTH_LONG).show();
-                    return;
-                }
-            case MISSING_MEDIA_ACTIVITY:
-                if(resultCode == RESULT_CANCELED){
-                    // exit the app if media wasn't validated on automatic
-                    // validation check.
-                    this.finish();
-                    return;
-                } else if(resultCode == RESULT_OK){
-                    Toast.makeText(this, "Media Validated!", Toast.LENGTH_LONG).show();
-                    return;
-                }
+                handleReturnFromMediaValidation(resultCode);
+                break;
             case DUMP_FORMS_ACTIVITY:
-                if(resultCode == RESULT_CANCELED){
-                    return;
-                }
-                else if(resultCode == DumpTask.BULK_DUMP_ID){
-                    int dumpedCount = intent.getIntExtra(CommCareFormDumpActivity.KEY_NUMBER_DUMPED, -1);
-                    
-                    displayMessage(Localization.get("bulk.form.dump.success",new String[] {""+dumpedCount}), false, false);
-                    
-                    uiController.refreshView();
-                    return;
-                }
-                else if(resultCode == SendTask.BULK_SEND_ID){
-                    int dumpedCount = intent.getIntExtra(CommCareFormDumpActivity.KEY_NUMBER_DUMPED, -1);
-                    
-                    displayMessage(Localization.get("bulk.form.send.success",new String[] {""+dumpedCount}),false, true);
-                    
-                    Toast.makeText(this, Localization.get("bulk.form.send.success",new String[] {""+dumpedCount}), Toast.LENGTH_LONG).show();
-                    uiController.refreshView();
-                    return;
-                }
-            case CONNECTION_DIAGNOSTIC_ACTIVITY:
-                return;
+                handleReturnFromFormDump(resultCode, intent);
+                break;
             case WIFI_DIRECT_ACTIVITY:
-                if(resultCode == RESULT_CANCELED){
-                    return;
-                }
-                else if(resultCode == SendTask.BULK_SEND_ID){
-                    int dumpedCount = intent.getIntExtra(CommCareWiFiDirectActivity.KEY_NUMBER_DUMPED, -1);
-                    
-                    displayMessage(Localization.get("bulk.form.send.success",new String[] {""+dumpedCount}),false, true);
-                    
-                    Toast.makeText(this, "Forms successfully submitted.", Toast.LENGTH_LONG).show();
-                    uiController.refreshView();
-                    return;
-                } else if(resultCode == WipeTask.WIPE_TASK_ID){
-                    int dumpedCount = intent.getIntExtra(CommCareWiFiDirectActivity.KEY_NUMBER_DUMPED, -1);
-                    
-                    displayMessage(Localization.get("bulk.form.send.success",new String[] {""+dumpedCount}),false, true);
-                    
-                    Toast.makeText(this, "Forms successfully submitted.", Toast.LENGTH_LONG).show();
-                    uiController.refreshView();
-                    return;
-                }
+                handleReturnFromWifiDirect(resultCode, intent);
+                break;
             case REPORT_PROBLEM_ACTIVITY:
-                if(resultCode == RESULT_CANCELED) {
-                    return;
-                }
-                else if(resultCode == RESULT_OK){
-                    CommCareApplication._().notifyLogsPending();
-                    uiController.refreshView();
-                    return;    
-                }
+                handleReturnFromReportProblem(resultCode);
+                break;
             case LOGIN_USER:
-                if(resultCode == RESULT_CANCELED) {
+                if (resultCode == RESULT_CANCELED) {
                     this.finish();
                     return;
-                } else if(resultCode == RESULT_OK) {
-                    if (!intent.getBooleanExtra(LoginActivity.ALREADY_LOGGED_IN, false)) {
+                } else if (resultCode == RESULT_OK) {
+                    boolean wasAlreadyLoggedIn = intent.getBooleanExtra(LoginActivity.ALREADY_LOGGED_IN, false);
+                    if (!wasAlreadyLoggedIn) {
                         uiController.refreshView();
-                        
+
                         //Unless we're about to sync (which will handle this
                         //in a blocking fashion), trigger off a regular unsent
                         //task processor
                         if(!CommCareApplication._().isSyncPending(false)) {
                             checkAndStartUnsentTask(false);
                         }
-                        
+
                         if(isDemoUser()) {
                             showDemoModeWarning();
                         }
@@ -387,37 +303,9 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
                     return;
                 }
                 break;
-                
-            case GET_INCOMPLETE_FORM:
-                //TODO: We might need to load this from serialized state?
-                AndroidSessionWrapper currentState = CommCareApplication._().getCurrentSessionWrapper();
-                
-                if(resultCode == RESULT_CANCELED) {
-                    uiController.refreshView();
-                    return;
-                } else if(resultCode == RESULT_OK) {
-                    int record = intent.getIntExtra("FORMRECORDS", -1);
-                    if(record == -1) {
-                        //Hm, what to do here?
-                        break;
-                    }
-                    FormRecord r = CommCareApplication._().getUserStorage(FormRecord.class).read(record);
-                    
-                    //Retrieve and load the appropriate ssd
-                    SqlStorage<SessionStateDescriptor> ssdStorage = CommCareApplication._().getUserStorage(SessionStateDescriptor.class);
-                    Vector<Integer> ssds = ssdStorage.getIDsForValue(SessionStateDescriptor.META_FORM_RECORD_ID, r.getID());
-                    if(ssds.size() == 1) {
-                        currentState.loadFromStateDescription(ssdStorage.read(ssds.firstElement()));
-                    } else {
-                        currentState.setFormRecordId(r.getID());
-                    }
 
-                    if (CommCareApplication._().getCurrentApp() != null) {
-                        platform = CommCareApplication._().getCommCarePlatform();
-                    }
-                    formEntry(platform.getFormContentUri(r.getFormNamespace()), r);
-                    return;
-                }
+            case GET_INCOMPLETE_FORM:
+                handleReturnFromIncompleteForms(resultCode, intent);
                 break;
             case GET_COMMAND:
                 //TODO: We might need to load this from serialized state?
@@ -456,11 +344,86 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
                     return;
                 }
                 break;
-            }
-
-            startNextFetch();
         }
         super.onActivityResult(requestCode, resultCode, intent);
+    }
+
+    private void handleReturnFromUpgrade(int resultCode, Intent intent) {
+        if (resultCode == RESULT_CANCELED) {
+            //This might actually be bad, but try to go about your business
+            //The onResume() will take us to the screen
+        } else if(resultCode == RESULT_OK) {
+            if(intent.getBooleanExtra(CommCareSetupActivity.KEY_REQUIRE_REFRESH, true)) {
+                Toast.makeText(this, Localization.get("update.success.refresh"), Toast.LENGTH_LONG).show();
+                CommCareApplication._().closeUserSession();
+            }
+        }
+    }
+
+    private void handleReturnFromMediaValidation(int resultCode) {
+        if (resultCode == RESULT_OK){
+            Toast.makeText(this, "Media Validated!", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void handleReturnFromFormDump(int resultCode, Intent intent) {
+        if (resultCode == DumpTask.BULK_DUMP_ID) {
+            int dumpedCount = intent.getIntExtra(CommCareFormDumpActivity.KEY_NUMBER_DUMPED, -1);
+            displayMessage(Localization.get("bulk.form.dump.success", new String[]{"" + dumpedCount}), false, false);
+            uiController.refreshView();
+        } else if (resultCode == SendTask.BULK_SEND_ID) {
+            int dumpedCount = intent.getIntExtra(CommCareFormDumpActivity.KEY_NUMBER_DUMPED, -1);
+            displayMessage(Localization.get("bulk.form.send.success", new String[]{"" + dumpedCount}), false, true);
+            Toast.makeText(this, Localization.get("bulk.form.send.success",new String[] {""+dumpedCount}), Toast.LENGTH_LONG).show();
+            uiController.refreshView();
+        }
+    }
+
+    private void handleReturnFromWifiDirect(int resultCode, Intent intent) {
+        if (resultCode == SendTask.BULK_SEND_ID || resultCode == WipeTask.WIPE_TASK_ID) {
+            int dumpedCount = intent.getIntExtra(CommCareWiFiDirectActivity.KEY_NUMBER_DUMPED, -1);
+            displayMessage(Localization.get("bulk.form.send.success", new String[]{"" + dumpedCount}), false, true);
+            Toast.makeText(this, "Forms successfully submitted.", Toast.LENGTH_LONG).show();
+            uiController.refreshView();
+        }
+    }
+
+    private void handleReturnFromReportProblem(int resultCode) {
+        if (resultCode == RESULT_OK) {
+            CommCareApplication._().notifyLogsPending();
+            uiController.refreshView();
+        }
+    }
+
+    private void handleReturnFromIncompleteForms(int resultCode, Intent intent) {
+        //TODO: We might need to load this from serialized state?
+        AndroidSessionWrapper currentState = CommCareApplication._().getCurrentSessionWrapper();
+
+        if (resultCode == RESULT_CANCELED) {
+            uiController.refreshView();
+        } else if (resultCode == RESULT_OK) {
+            int record = intent.getIntExtra("FORMRECORDS", -1);
+            if (record == -1) {
+                //Hm, what to do here?
+                return;
+            }
+            FormRecord r = CommCareApplication._().getUserStorage(FormRecord.class).read(record);
+
+            //Retrieve and load the appropriate ssd
+            SqlStorage<SessionStateDescriptor> ssdStorage = CommCareApplication._().getUserStorage(SessionStateDescriptor.class);
+            Vector<Integer> ssds = ssdStorage.getIDsForValue(SessionStateDescriptor.META_FORM_RECORD_ID, r.getID());
+            if(ssds.size() == 1) {
+                currentState.loadFromStateDescription(ssdStorage.read(ssds.firstElement()));
+            } else {
+                currentState.setFormRecordId(r.getID());
+            }
+
+            if (CommCareApplication._().getCurrentApp() != null) {
+                platform = CommCareApplication._().getCommCarePlatform();
+            }
+            formEntry(platform.getFormContentUri(r.getFormNamespace()), r);
+            return;
+        }
     }
 
     /**
@@ -647,43 +610,6 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
         mAlertDialog.show();
     }
 
-    /**
-     * Create (or re-use) a form record and pass it to the form entry activity
-     * launcher. If there is an existing incomplete form that uses the same
-     * case, ask the user if they want to edit or delete that one.
-     *
-     * @param state Needed for FormRecord manipulations
-     */
-    private void startFormEntry(AndroidSessionWrapper state) {
-        if (state.getFormRecordId() == -1) {
-            if (CommCarePreferences.isIncompleteFormsEnabled()) {
-                // Are existing (incomplete) forms using the same case?
-                SessionStateDescriptor existing =
-                    state.getExistingIncompleteCaseDescriptor();
-
-                if (existing != null) {
-                    // Ask user if they want to just edit existing form that
-                    // uses the same case.
-                    createAskUseOldDialog(state, existing);
-                    return;
-                }
-            }
-
-            // Generate a stub form record and commit it
-            state.commitStub();
-        } else {
-            Logger.log("form-entry", "Somehow ended up starting form entry with old state?");
-        }
-
-        FormRecord record = state.getFormRecord();
-
-        if (CommCareApplication._().getCurrentApp() != null) {
-            platform = CommCareApplication._().getCommCarePlatform();
-        }
-
-        formEntry(platform.getFormContentUri(record.getFormNamespace()), record, CommCareActivity.getTitle(this, null));
-    }
-
     @Override
     public String getActivityTitle() {
         String userName;
@@ -776,7 +702,7 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
             @Override
             protected void deliverResult(CommCareHomeActivity receiver, Integer result) {
                 if (result == ProcessAndSendTask.PROGRESS_LOGGED_OUT) {
-                    returnToLogin();
+                    goToLogin();
                     return;
                 }
                 uiController.refreshView();
@@ -1007,29 +933,29 @@ public class CommCareHomeActivity extends SessionAwareCommCareActivity<CommCareH
 
     private void startReportActivity() {
         Intent i = new Intent(this, ReportProblemActivity.class);
-        CommCareHomeActivity.this.startActivityForResult(i, REPORT_PROBLEM_ACTIVITY);
+        startActivityForResult(i, REPORT_PROBLEM_ACTIVITY);
     }
 
     private void startValidationActivity() {
         Intent i = new Intent(this, CommCareVerificationActivity.class);
         i.putExtra(CommCareVerificationActivity.KEY_LAUNCH_FROM_SETTINGS, true);
-        CommCareHomeActivity.this.startActivityForResult(i, MEDIA_VALIDATOR_ACTIVITY);
+        startActivityForResult(i, MEDIA_VALIDATOR_ACTIVITY);
     }
 
     private void startFormDumpActivity() {
         Intent i = new Intent(this, CommCareFormDumpActivity.class);
         i.putExtra(CommCareFormDumpActivity.EXTRA_FILE_DESTINATION, CommCareApplication._().getCurrentApp().storageRoot());
-        CommCareHomeActivity.this.startActivityForResult(i, DUMP_FORMS_ACTIVITY);
+        startActivityForResult(i, DUMP_FORMS_ACTIVITY);
     }
 
     private void startWifiDirectActivity() {
         Intent i = new Intent(this, CommCareWiFiDirectActivity.class);
-        CommCareHomeActivity.this.startActivityForResult(i, WIFI_DIRECT_ACTIVITY);
+        startActivityForResult(i, WIFI_DIRECT_ACTIVITY);
     }
 
     private void startMenuConnectionActivity() {
         Intent i = new Intent(this, ConnectionDiagnosticActivity.class);
-        CommCareHomeActivity.this.startActivityForResult(i, CONNECTION_DIAGNOSTIC_ACTIVITY);
+        startActivity(i);
     }
 
     private void showAboutCommCareDialog() {
