@@ -285,10 +285,11 @@ public class LoginActivity extends CommCareActivity<LoginActivity> implements On
         try {
             //TODO: there is a weird circumstance where we're logging in somewhere else and this gets locked.
             if (CommCareApplication._().getSession().isActive() && CommCareApplication._().getSession().getLoggedInUser() != null) {
+                Logger.log(AndroidLogger.SOFT_ASSERT, "Ended up in LoginActivity when a user was " +
+                        "already logged in, finishing to return to HomeActivity");
                 Intent i = new Intent();
                 i.putExtra(ALREADY_LOGGED_IN, true);
                 setResult(RESULT_OK, i);
-                
                 CommCareApplication._().clearNotifications(NOTIFICATION_MESSAGE_LOGIN);
                 finish();
                 return;
@@ -299,11 +300,11 @@ public class LoginActivity extends CommCareActivity<LoginActivity> implements On
 
         // It is possible that we left off at the LoginActivity last time we were on the main CC
         // screen, but have since done something in the app manager to either leave no seated app
-        // at all, or to render the seated app unusable. Redirect to CCHomeActivity if we encounter
-        // either case
+        // at all, or to render the seated app unusable. Redirect to CCDispatchActivity if we
+        // encounter either case
         CommCareApp currentApp = CommCareApplication._().getCurrentApp();
         if (currentApp == null || !currentApp.getAppRecord().isUsable()) {
-            Intent i = new Intent(this, CommCareHomeActivity.class);
+            Intent i = new Intent(this, CommCareDispatchActivity.class);
             startActivity(i);
             return;
         }
@@ -428,12 +429,9 @@ public class LoginActivity extends CommCareActivity<LoginActivity> implements On
     
     private void done() {
         ACRAUtil.registerUserData();
-
         CommCareApplication._().clearNotifications(NOTIFICATION_MESSAGE_LOGIN);
-
         Intent i = new Intent();
         setResult(RESULT_OK, i);
-
         finish();
     }
     
